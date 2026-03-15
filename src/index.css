@@ -157,7 +157,8 @@ All colors MUST be HSL.
   }
 
   .glass-effect {
-    background: hsl(var(--card) / 0.3);
+    background: hsl(var(--card) / 0.6);
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     border: 1px solid hsl(var(--border) / 0.5);
   }
