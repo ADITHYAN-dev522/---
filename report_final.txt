@@ -130,16 +130,17 @@ The system architecture is a unified collection of specialized security services
 
 1.  **The Analytical Layer (Scanners & Agents)**
     This layer contains the autonomous tools executing on the endpoints:
+    *   **Wazuh (SIEM & Security Agent)**: Provides comprehensive endpoint security monitoring, log collection, and intrusion detection across the deployment environment.
     *   **MalwareMind (YARA + ClamAV + VirusTotal)**: Performs static behavior mapping, signature matching, and public reputation intelligence gathering.
-    *   **VulnEye (OSV/Trivy)**: Evaluates packages and system dependencies for known vulnerabilities (CVEs).
+    *   **Vulnerability Scanners (VulnEye / OSV / Trivy)**: Evaluates packages and system dependencies for known vulnerabilities (CVEs).
 2.  **The Correlation Layer (ThreatSentinel)**
     This layer acts as the brain. It ingests the JSON outputs from the Analytical Layer. Rather than presenting 50 isolated alerts, ThreatSentinel correlates related findings on a specific host, grouping them into unified ThreatEvents.
 3.  **The Persistent Memory Layer (SQLite Database)**
     All active incidents, resolved issues, and recurring attack vectors are stored here. This allows the system to cross-reference new alerts against a historical baseline.
 4.  **The Remediation Layer (PatchMaster)**
     Consumes identified weaknesses and converts them into precise mitigation prescriptions, such as terminal commands for package upgrades.
-5.  **The Presentation & AI Layer (Dashboard & Copilot)**
-    The React-based web dashboard provides visual metrics on risk scoring and live event queues. The integrated Ollama LLM Copilot sits parallel to the interface, directly querying the backend memory to answer analyst questions based on the active state of the network.
+5.  **The Presentation & AI Chat Bot Layer (Dashboard & Copilot)**
+    The React-based web dashboard provides visual metrics on risk scoring and live event queues. An integrated AI Chat Bot (the Blue Team Copilot) powered by Ollama sits parallel to the interface, directly querying the backend memory to answer analyst questions based on the active state of the network.
 
 4.3 Tools and Technologies Used in the Codebase
 
@@ -152,7 +153,8 @@ To realize this architecture, our codebase integrates a diverse set of powerful 
     *   **YARA (via yara-python)**: A powerful pattern-matching Swiss army knife. We integrated thousands of community rules directly from GitHub to perform deep static analysis on strings and byte sequences within executable files natively.
     *   **ClamAV**: The open-source antivirus engine used for rapid, known-signature blocklisting via command-line sub-processes.
     *   **VirusTotal API**: Accessed via the `requests` library, this allows the system to take locally observed SHA-256 hashes and validate them against the global intelligence community.
-3.  **Vulnerability Identification**
+3.  **Vulnerability Scanners & Centralized Monitoring**
+    *   **Wazuh**: Serves as the enterprise-grade robust SIEM platform, continuously collecting host data, detecting anomalies, and providing baseline infrastructure visibility.
     *   **Trivy & OSV Scanner**: Automated Python sub-process executions read local system packages (like npm and pip configurations) to find common vulnerabilities and exposures (CVEs), generating machine-readable JSON outputs.
 4.  **Continuous Memory & Storage**
     *   **SQLite**: Used via standard Python libraries (`sqlite3`) to track incidents, states, severity rankings, and resolutions persistently across application reboots.
@@ -161,8 +163,8 @@ To realize this architecture, our codebase integrates a diverse set of powerful 
     *   **Tailwind CSS & shadcn/ui**: Utilized to build a clean, modern, dark-themed, and highly professional layout prioritizing data readability and analyst focus.
     *   **Recharts**: A composable charting library applied for visualizing threat trends and system health telemetry graphically over time.
     *   **Lucide React**: Supplies clean vector icons for navigation and threat indicators.
-6.  **Artificial Intelligence Integration**
-    *   **Ollama**: We utilize local deployment models to run LLM inference directly on the system. Using `ollama/ollama-js` or HTTP endpoints, the AI generates explanations for the Copilot directly from the backend data context, preserving absolute data privacy.
+6.  **AI Chat Bot Integration (Blue Team Copilot)**
+    *   **Ollama**: We utilize local deployment models to run LLM inference directly on the system. Using `ollama/ollama-js` or HTTP endpoints, the AI generates explanations for the AI Chat Bot directly from the backend data context, preserving absolute data privacy.
 \n
 
 CHAPTER 5
@@ -194,8 +196,8 @@ Implemented in `backend/app/services/threat_sentinel/correlator.py`, this module
 5.2.5 PatchMaster Remediation Module
 The PatchMaster component (`backend/app/services/patchmaster/advisor.py`) algorithmically identifies the underlying package ecosystem (e.g., pip, apt) of any discovered vulnerability. It then formulates the exact executable terminal command necessary to safely update the library and patches it with a direct CVE URL mapping. 
 
-5.2.6 UI/UX & React Dashboard Delivery
-The React interface acts as the control plane. We implemented asynchronous fetching (`useEffect` hooks querying the FastAPI routes) to populate the Detections, Incidents, and Dashboard components with live data. The Risk Scoring engine algorithmically calculates a 0-100 score based on current vulnerabilities and malware counts, which translates dynamically into UI elements like the critical status badges and visual charts. The integrated Copilot component binds directly to the Ollama endpoint, utilizing a strict contextual prompt containing system state to ensure the LLM outputs accurate, grounded security advice.
+5.2.6 UI/UX & AI Chat Bot (Blue Team Copilot)
+The React interface acts as the control plane. We implemented asynchronous fetching (`useEffect` hooks querying the FastAPI routes) to populate the Detections, Incidents, and Dashboard components with live data. The Risk Scoring engine algorithmically calculates a 0-100 score based on current vulnerabilities and malware counts, which translates dynamically into UI elements like the critical status badges and visual charts. The integrated AI Chat Bot component binds directly to the Ollama endpoint, utilizing a strict contextual prompt containing system state to ensure the LLM outputs accurate, grounded security advice.
 \n
 
 CHAPTER 6
