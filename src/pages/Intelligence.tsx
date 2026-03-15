@@ -24,7 +24,7 @@ export default function Intelligence() {
      ========================= */
   async function fetchAlerts() {
     const res = await fetch(
-      "http://localhost:8000/api/threat-intel/wazuh/alerts",
+      "/api/threat-intel/wazuh/alerts",
       { cache: "no-store" }
     );
     const data = await res.json();

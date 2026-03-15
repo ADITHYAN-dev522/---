@@ -48,7 +48,7 @@ export default function Response() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:8000/api/patchmaster/recommendations?limit=50", { cache: "no-store" });
+      const res = await fetch("/api/patchmaster/recommendations?limit=50", { cache: "no-store" });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       setRecs(Array.isArray(data) ? data : []);

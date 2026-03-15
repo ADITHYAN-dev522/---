@@ -43,7 +43,7 @@ export default function Detections() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:8000/api/threat-sentinel/events?limit=100", { cache: "no-store" });
+      const res = await fetch("/api/threat-sentinel/events?limit=100", { cache: "no-store" });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       setEvents(Array.isArray(data) ? data : []);

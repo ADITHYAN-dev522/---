@@ -52,26 +52,26 @@ export default function Dashboard() {
 
   /* ── Backend health check ── */
   useEffect(() => {
-    fetch("http://localhost:8000/api/health")
+    fetch("/api/health")
       .then(r => r.ok ? setBackendStatus("online") : setBackendStatus("offline"))
       .catch(() => setBackendStatus("offline"));
   }, []);
 
   /* ── Telemetry ── */
   useEffect(() => {
-    fetch("http://localhost:8000/api/telemetry/latest", { cache: "no-store" })
+    fetch("/api/telemetry/latest", { cache: "no-store" })
       .then(r => r.json()).then(setTelemetry).catch(() => setTelemetry(null));
   }, []);
 
   /* ── Real threat events from ThreatSentinel ── */
   useEffect(() => {
-    fetch("http://localhost:8000/api/threat-sentinel/events?limit=6", { cache: "no-store" })
+    fetch("/api/threat-sentinel/events?limit=6", { cache: "no-store" })
       .then(r => r.json()).then(d => setThreatEvents(Array.isArray(d) ? d : [])).catch(() => setThreatEvents([]));
   }, []);
 
   /* ── Risk score ── */
   useEffect(() => {
-    fetch("http://localhost:8000/api/risk/score", { cache: "no-store" })
+    fetch("/api/risk/score", { cache: "no-store" })
       .then(r => r.json()).then(setRiskScore).catch(() => setRiskScore(null));
   }, []);
 

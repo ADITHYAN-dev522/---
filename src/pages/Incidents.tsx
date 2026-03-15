@@ -46,8 +46,8 @@ export default function Incidents() {
     setError(null);
     try {
       const [incRes, statRes] = await Promise.all([
-        fetch("http://localhost:8000/api/memory/incidents?limit=50", { cache: "no-store" }),
-        fetch("http://localhost:8000/api/memory/stats", { cache: "no-store" }),
+        fetch("/api/memory/incidents?limit=50", { cache: "no-store" }),
+        fetch("/api/memory/stats", { cache: "no-store" }),
       ]);
       if (!incRes.ok || !statRes.ok) throw new Error("Failed to fetch incident data");
       const [incData, statData] = await Promise.all([incRes.json(), statRes.json()]);
@@ -65,7 +65,7 @@ export default function Incidents() {
   const handleResolve = async (id: string) => {
     setResolving(id);
     try {
-      const res = await fetch(`http://localhost:8000/api/memory/incidents/${id}/resolve`, { method: "PATCH" });
+      const res = await fetch(`/api/memory/incidents/${id}/resolve`, { method: "PATCH" });
       if (!res.ok) throw new Error("Failed to resolve");
       await fetchAll();
     } catch (e: any) {

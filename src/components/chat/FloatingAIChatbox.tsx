@@ -56,7 +56,7 @@ export default function FloatingAIChatbox() {
       // Fetch latest scan context
       let latestScan: any = {};
       try {
-        const r = await fetch("http://localhost:8000/api/scan/results");
+        const r = await fetch("/api/scan/results");
         latestScan = await r.json();
       } catch (_) {}
 
@@ -66,7 +66,7 @@ export default function FloatingAIChatbox() {
         context.pinned_analyst_data = pinnedData;
       }
 
-      const res = await fetch("http://localhost:8000/api/ai/chat", {
+      const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: messageToSend, context }),

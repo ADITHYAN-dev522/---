@@ -1,4 +1,4 @@
-export const API_BASE = "http://localhost:8000";
+export const API_BASE = "";
 
 async function request(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
