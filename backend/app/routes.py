@@ -342,6 +342,67 @@ def chat(request: ChatRequest):
 
 
 # ==========================================================
+# AI COPILOT CHAT — used by FloatingAIChatbox (sends {message, context}, reads {reply})
+# ==========================================================
+class AIChatRequest(BaseModel):
+    message: str
+    context: dict = {}
+
+
+@router.post("/ai/chat")
+def ai_chat(request: AIChatRequest):
+    """
+    Endpoint called by the FloatingAIChatbox component.
+    Accepts a richer { message, context } payload and returns { reply }.
+    """
+    latest_file = SCANS_DIR / "latest.json"
+    scan_data: dict = {}
+    if latest_file.exists():
+        try:
+            scan_data = json.loads(latest_file.read_text())
+        except Exception:
+            pass
+
+    # Merge any context passed from the frontend (pinned data, live scan, etc.)
+    merged = {**scan_data, **request.context}
+
+    user_msg = request.message.lower()
+    response = "Security posture summary:\n\n"
+
+    results = merged.get("results") or {}
+    critical = high = assets = 0
+    for _, scanners in results.items():
+        trivy = scanners.get("trivy", {}) if isinstance(scanners, dict) else {}
+        for r in trivy.get("Results", []):
+            assets += 1
+            for v in r.get("Vulnerabilities", []):
+                sev = (v.get("Severity") or "").upper()
+                if sev == "CRITICAL":
+                    critical += 1
+                elif sev == "HIGH":
+                    high += 1
+
+    response += f"Critical vulns: {critical}\nHigh vulns: {high}\nAssets scanned: {assets}\n"
+
+    if any(k in user_msg for k in ["malware", "virus", "trojan", "ransom", "yara", "clamav"]):
+        malware = load_malware_status()
+        if malware:
+            response += (
+                f"\nMalware Assessment:\n"
+                f"Verdict: {malware.get('verdict', 'UNKNOWN')}\n"
+                f"Risk Score: {malware.get('risk_score', 0)}\n"
+                f"ClamAV Infections: {malware.get('clamav', {}).get('infected_count', 0)}\n"
+                f"YARA Hits: {malware.get('yara_hits', 0)}\n"
+                f"VirusTotal Positives: {malware.get('vt_positives', 0)}\n"
+            )
+
+    if request.context.get("pinned_analyst_data"):
+        response += f"\n\nYou pinned the following data for analysis:\n{request.context['pinned_analyst_data'][:500]}"
+
+    return {"reply": response}
+
+
+# ==========================================================
 # WAZUH THREAT INTELLIGENCE
 # ==========================================================
 @router.get("/threat-intel/wazuh/alerts")

@@ -16,7 +16,7 @@ export function Layout({ children }: LayoutProps) {
       <Header />
       <div className="flex flex-1 w-full relative z-10">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative z-10">
           <div className="container mx-auto p-6">{children}</div>
         </main>
       </div>
