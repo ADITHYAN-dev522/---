@@ -348,58 +348,67 @@ class AIChatRequest(BaseModel):
     message: str
     context: dict = {}
 
+import os
+try:
+    import google.generativeai as genai
+    _gemini_ok = True
+except ImportError:
+    _gemini_ok = False
 
 @router.post("/ai/chat")
 def ai_chat(request: AIChatRequest):
     """
     Endpoint called by the FloatingAIChatbox component.
-    Accepts a richer { message, context } payload and returns { reply }.
+    Passes the context and user query to Google Gemini for a real AI response.
     """
-    latest_file = SCANS_DIR / "latest.json"
-    scan_data: dict = {}
-    if latest_file.exists():
-        try:
-            scan_data = json.loads(latest_file.read_text())
-        except Exception:
-            pass
+    if not _gemini_ok:
+        return {"reply": "Error: 'google-generativeai' package is not installed on the backend."}
+        
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return {"reply": "⚠️ **Missing API Key**\n\nI need a Google Gemini API key to process questions. Please set the `GEMINI_API_KEY` environment variable on the backend and restart it."}
 
-    # Merge any context passed from the frontend (pinned data, live scan, etc.)
-    merged = {**scan_data, **request.context}
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        
+        # Gather local context to feed the prompt
+        latest_file = SCANS_DIR / "latest.json"
+        scan_data: dict = {}
+        if latest_file.exists():
+            try:
+                scan_data = json.loads(latest_file.read_text())
+            except Exception:
+                pass
 
-    user_msg = request.message.lower()
-    response = "Security posture summary:\n\n"
-
-    results = merged.get("results") or {}
-    critical = high = assets = 0
-    for _, scanners in results.items():
-        trivy = scanners.get("trivy", {}) if isinstance(scanners, dict) else {}
-        for r in trivy.get("Results", []):
-            assets += 1
-            for v in r.get("Vulnerabilities", []):
-                sev = (v.get("Severity") or "").upper()
-                if sev == "CRITICAL":
-                    critical += 1
-                elif sev == "HIGH":
-                    high += 1
-
-    response += f"Critical vulns: {critical}\nHigh vulns: {high}\nAssets scanned: {assets}\n"
-
-    if any(k in user_msg for k in ["malware", "virus", "trojan", "ransom", "yara", "clamav"]):
+        merged_context = {**scan_data, **request.context}
+        
+        system_prompt = (
+            "You are the SentinelNexus AI Security Analyst. You help users understand threats, "
+            "vulnerabilities, and malware found on their systems. Keep answers concise, helpful, "
+            "and format them with markdown.\n\n"
+        )
+        
+        context_str = "=== CURRENT SYSTEM CONTEXT ===\n"
+        
+        # Summarize general scan context if available
+        if merged_context.get("results"):
+            context_str += "Recent vulnerabilities found by Trivy/OSV scanners.\n"
+        
         malware = load_malware_status()
         if malware:
-            response += (
-                f"\nMalware Assessment:\n"
-                f"Verdict: {malware.get('verdict', 'UNKNOWN')}\n"
-                f"Risk Score: {malware.get('risk_score', 0)}\n"
-                f"ClamAV Infections: {malware.get('clamav', {}).get('infected_count', 0)}\n"
-                f"YARA Hits: {malware.get('yara_hits', 0)}\n"
-                f"VirusTotal Positives: {malware.get('vt_positives', 0)}\n"
-            )
-
-    if request.context.get("pinned_analyst_data"):
-        response += f"\n\nYou pinned the following data for analysis:\n{request.context['pinned_analyst_data'][:500]}"
-
-    return {"reply": response}
+            context_str += f"Malware Status: {malware.get('verdict')}, Risk: {malware.get('risk_score')}\n"
+            
+        if request.context.get("pinned_analyst_data"):
+            context_str += f"User Pinned Data:\n{request.context['pinned_analyst_data']}\n"
+            
+        system_prompt += context_str + "\n=== USER QUERY ===\n" + request.message
+        
+        response = model.generate_content(system_prompt)
+        return {"reply": response.text}
+        
+    except Exception as e:
+        return {"reply": f"❌ **AI Processing Error:**\n\n```\n{str(e)}\n```"}
 
 
 # ==========================================================
