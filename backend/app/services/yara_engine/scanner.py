@@ -183,7 +183,10 @@ def _load_rules():
     logger.info("[YARA] Compiling %d rule source(s)...", total)
 
     try:
-        rules = yara.compile(sources=sources)
+        rules = yara.compile(
+            sources=sources,
+            externals={'filepath': '', 'filename': '', 'extension': ''}
+        )
         logger.info("[YARA] Compilation successful (%d namespaces).", total)
         return rules
     except Exception as exc:
@@ -192,7 +195,10 @@ def _load_rules():
             "retrying with built-ins only.", exc
         )
         try:
-            rules = yara.compile(source=BUILTIN_RULES)
+            rules = yara.compile(
+                source=BUILTIN_RULES,
+                externals={'filepath': '', 'filename': '', 'extension': ''}
+            )
             logger.info("[YARA] Built-in rules compiled successfully.")
             return rules
         except Exception as exc2:
@@ -244,7 +250,15 @@ def scan_file(filepath: str) -> dict:
         return result
 
     try:
-        matches = _RULES.match(data=data, timeout=30)
+        matches = _RULES.match(
+            data=data,
+            timeout=30,
+            externals={
+                'filepath': filepath,
+                'filename': path.name,
+                'extension': path.suffix,
+            }
+        )
         result["matches"] = [
             {
                 "rule": m.rule,

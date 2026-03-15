@@ -350,10 +350,11 @@ class AIChatRequest(BaseModel):
 
 import os
 try:
-    import google.generativeai as genai
+    from google import genai
     _gemini_ok = True
 except ImportError:
     _gemini_ok = False
+
 
 @router.post("/ai/chat")
 def ai_chat(request: AIChatRequest):
@@ -362,15 +363,14 @@ def ai_chat(request: AIChatRequest):
     Passes the context and user query to Google Gemini for a real AI response.
     """
     if not _gemini_ok:
-        return {"reply": "Error: 'google-generativeai' package is not installed on the backend."}
+        return {"reply": "Error: 'google-genai' package is not installed on the backend. Please run `pip install google-genai`."}
         
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         return {"reply": "⚠️ **Missing API Key**\n\nI need a Google Gemini API key to process questions. Please set the `GEMINI_API_KEY` environment variable on the backend and restart it."}
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        client = genai.Client(api_key=api_key)
         
         # Gather local context to feed the prompt
         latest_file = SCANS_DIR / "latest.json"
@@ -404,7 +404,10 @@ def ai_chat(request: AIChatRequest):
             
         system_prompt += context_str + "\n=== USER QUERY ===\n" + request.message
         
-        response = model.generate_content(system_prompt)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=system_prompt,
+        )
         return {"reply": response.text}
         
     except Exception as e:
