@@ -4,6 +4,43 @@ import json
 from pathlib import Path
 from pydantic import BaseModel
 
+# ── Safe service imports (wrapped so that missing deps don't crash routes) ──
+try:
+    from app.services.threat_sentinel import correlator as ts
+    _ts_ok = True
+except Exception as e:
+    print(f"[!] threat_sentinel import failed: {e}")
+    _ts_ok = False
+
+try:
+    from app.services.memory import db as memory
+    _mem_ok = True
+except Exception as e:
+    print(f"[!] memory import failed: {e}")
+    _mem_ok = False
+
+try:
+    from app.services.risk_engine import scorer
+    _risk_ok = True
+except Exception as e:
+    print(f"[!] risk_engine import failed: {e}")
+    _risk_ok = False
+
+try:
+    from app.services.patchmaster import advisor
+    _patch_ok = True
+except Exception as e:
+    print(f"[!] patchmaster import failed: {e}")
+    _patch_ok = False
+
+try:
+    from app.services.threat_intelligence.wazuh.indexer_client import fetch_alerts
+    from app.services.threat_intelligence.wazuh.normalizer import normalize
+    _wazuh_ok = True
+except Exception as e:
+    print(f"[!] wazuh import failed: {e}")
+    _wazuh_ok = False
+
 router = APIRouter()
 
 # ==========================================================
@@ -184,14 +221,16 @@ def get_telemetry_history(limit: int = 5):
 # ==========================================================
 # THREAT SENTINEL — Correlated events
 # ==========================================================
-from app.services.threat_sentinel import correlator as ts
-
 @router.get("/threat-sentinel/events")
 def get_threat_events(limit: int = 50):
+    if not _ts_ok:
+        return []
     return ts.get_events(limit=limit)
 
 @router.post("/threat-sentinel/correlate")
 def trigger_correlation():
+    if not _ts_ok:
+        return {"correlated": 0, "events": [], "error": "ThreatSentinel service unavailable"}
     events = ts.run_correlation()
     return {"correlated": len(events), "events": events[:10]}
 
@@ -199,18 +238,20 @@ def trigger_correlation():
 # ==========================================================
 # MEMORY MODULE — Incidents
 # ==========================================================
-from app.services.memory import db as memory
-
 @router.get("/memory/incidents")
 def list_incidents(
     status:   str | None = Query(None),
     severity: str | None = Query(None),
     limit:    int        = Query(100),
 ):
+    if not _mem_ok:
+        return []
     return memory.get_incidents(status=status, severity=severity, limit=limit)
 
 @router.get("/memory/stats")
 def incident_stats():
+    if not _mem_ok:
+        return {"total_incidents": 0, "open": 0, "resolved": 0, "error": "Memory service unavailable"}
     return memory.get_stats()
 
 class ResolveRequest(BaseModel):
@@ -218,6 +259,8 @@ class ResolveRequest(BaseModel):
 
 @router.patch("/memory/incidents/{incident_id}/resolve")
 def resolve_incident(incident_id: str):
+    if not _mem_ok:
+        raise HTTPException(503, "Memory service unavailable")
     ok = memory.resolve_incident(incident_id)
     if not ok:
         raise HTTPException(404, f"Incident {incident_id} not found or already resolved")
@@ -227,20 +270,26 @@ def resolve_incident(incident_id: str):
 # ==========================================================
 # RISK SCORING ENGINE
 # ==========================================================
-from app.services.risk_engine import scorer
-
 @router.get("/risk/score")
 def get_risk_score():
+    if not _risk_ok:
+        return {
+            "score": 0,
+            "label": "UNKNOWN",
+            "color": "#9E9E9E",
+            "recommendation": "Risk engine unavailable. Run scans to compute risk.",
+            "breakdown": {},
+        }
     return scorer.compute_risk_score()
 
 
 # ==========================================================
 # PATCHMASTER — Remediation recommendations
 # ==========================================================
-from app.services.patchmaster import advisor
-
 @router.get("/patchmaster/recommendations")
 def get_recommendations(limit: int = 50):
+    if not _patch_ok:
+        return []
     return advisor.get_recommendations(limit=limit)
 
 
@@ -295,11 +344,13 @@ def chat(request: ChatRequest):
 # ==========================================================
 # WAZUH THREAT INTELLIGENCE
 # ==========================================================
-from app.services.threat_intelligence.wazuh.indexer_client import fetch_alerts
-from app.services.threat_intelligence.wazuh.normalizer import normalize
-
 @router.get("/threat-intel/wazuh/alerts")
 def wazuh_alerts(limit: int = 20):
-    data = fetch_alerts(limit)
-    hits = data.get("hits", {}).get("hits", [])
-    return [normalize(h) for h in hits]
+    if not _wazuh_ok:
+        return []
+    try:
+        data = fetch_alerts(limit)
+        hits = data.get("hits", {}).get("hits", [])
+        return [normalize(h) for h in hits]
+    except Exception as e:
+        return []
