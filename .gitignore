@@ -1,0 +1,58 @@
+# ----------------------------
+# Node / Frontend
+# ----------------------------
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ----------------------------
+# Python / Backend
+# ----------------------------
+venv/
+__pycache__/
+*.pyc
+
+# ----------------------------
+# Scan Outputs
+# ----------------------------
+backend/scans/
+
+# ----------------------------
+# Logs
+# ----------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ----------------------------
+# Environment Variables
+# ----------------------------
+.env
+
+# ----------------------------
+# Editor / OS
+# ----------------------------
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ----------------------------
+# Large Install Archives
+# ----------------------------
+backend/wazuh-install-files.tar
+
+# ----------------------------
+# YARA community rules (auto-downloaded on startup, do not commit)
+# ----------------------------
+backend/app/services/yara_engine/rules/
+backend/app/services/yara_engine/compiled.yar
