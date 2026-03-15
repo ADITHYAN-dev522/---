@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
+import FloatingAIChatbox from "@/components/chat/FloatingAIChatbox";
 import Index from "./pages/Index";
 import Detections from "./pages/Detections";
 import Incidents from "./pages/Incidents";
@@ -35,6 +36,8 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
+        {/* Global floating AI chatbox — visible on every page */}
+        <FloatingAIChatbox />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
