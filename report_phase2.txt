@@ -211,6 +211,24 @@ Hashes are validated asynchronously to the VirusTotal REST endpoints. The implem
     3. YARA Static Analysis:
 The `yara_engine/scanner.py` utilizes `yara-python` to fetch community rule catalogs (such as Neo23x0/signature-base). Specifically implemented rule skips and explicit `filetype` external mappings ensure the compilation of the thousands of external C-string signatures never breaks the server thread, checking effectively for extreme obfuscations.
 
+4. Telemetry (Environmental Baseline Implementation)
+The telemetry system functions as a lightweight background daemon constructed in Python. It heavily leverages OS-level libraries to extract real-time host metrics, such as CPU load, memory usage, network connections, and active processes. It parses these into standardized JSON responses, driving the primary frontend metrics and providing necessary normal-state baselines to the analytical engines.
+
+5. Risk Engine (Scoring Implementation)
+The Risk Engine is mathematically implemented as a correlation module inside the backend. It aggregates incoming logs—failed logins, malware detections, system loads—and assigns weighted severity scores to each event. Using Python logic loops, it generates a cumulative Risk Score out of 100, dictating when the UI components shift states from a green "Secure" to a red "Critical" alert.
+
+6. Asset Inventory (Network Footprint Implementation)
+The implementation of Asset Inventory utilizes network and system scanning scripts configured to enumerate local and remote hardware profiles. It maps out active node IP addresses, operating system versions, and hostnames, persisting this map in memory. This ensures the Risk Engine and Threat Sentinel have an accurate list of intended targets to defend.
+
+7. Threat Sentinel (Incident Router and Alert Engine)
+The Threat Sentinel module acts as the logical router between detection and action. Built as a core component of the FastAPI structure, it listens to the other subsystems. When the Risk Engine flags a critical score or MalwareMind finds a hash match, Threat Sentinel formats a structured incident payload and broadcasts the alert over the API to spawn notifications on the React frontend.
+
+8. PatchMaster (Remediation Logic Implementation)
+Unlike detection modules, PatchMaster incorporates actionable response logic. It contains localized scripts designed to cross-reference identified vulnerabilities against known system configurations. It formulates remediation guides or automatic script executions aimed at closing the vulnerability gaps, completing the active lifecycle of threat management.
+
+9. Operational Memory (SQLite Persistence)
+A high-performance implementation decision was made to avoid burdensome enterprise database schemas. The Memory Module establishes a direct connection to a local `app.db` SQLite file via native Python drivers. This ensures synchronous persistence of all telemetry snapshots, past incidents, and malware hits, allowing Cortexia to recall historical context for accurate AI processing and scoring.
+
 
 CHAPTER 6
 RESULT
