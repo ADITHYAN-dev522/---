@@ -185,7 +185,7 @@ def _load_rules():
     try:
         rules = yara.compile(
             sources=sources,
-            externals={'filepath': '', 'filename': '', 'extension': ''}
+            externals={'filepath': '', 'filename': '', 'extension': '', 'filetype': ''}
         )
         logger.info("[YARA] Compilation successful (%d namespaces).", total)
         return rules
@@ -197,7 +197,7 @@ def _load_rules():
         try:
             rules = yara.compile(
                 source=BUILTIN_RULES,
-                externals={'filepath': '', 'filename': '', 'extension': ''}
+                externals={'filepath': '', 'filename': '', 'extension': '', 'filetype': ''}
             )
             logger.info("[YARA] Built-in rules compiled successfully.")
             return rules
@@ -257,6 +257,7 @@ def scan_file(filepath: str) -> dict:
                 'filepath': filepath,
                 'filename': path.name,
                 'extension': path.suffix,
+                'filetype': '',
             }
         )
         result["matches"] = [
