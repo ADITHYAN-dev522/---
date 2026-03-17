@@ -175,7 +175,10 @@ def _load_rules():
             # Avoid collisions by prefixing with parent folder name
             ns = f"{clone_name.replace('-','_')}__{ns}"
             try:
-                sources[ns] = yar_file.read_text(encoding="utf-8", errors="ignore")
+                content = yar_file.read_text(encoding="utf-8", errors="ignore")
+                if "filetype" in content or "magic." in content:
+                    continue
+                sources[ns] = content
             except Exception:
                 pass
 
@@ -185,7 +188,7 @@ def _load_rules():
     try:
         rules = yara.compile(
             sources=sources,
-            externals={'filepath': '', 'filename': '', 'extension': '', 'filetype': ''}
+            externals={'filepath': '', 'filename': '', 'extension': ''}
         )
         logger.info("[YARA] Compilation successful (%d namespaces).", total)
         return rules
@@ -197,7 +200,7 @@ def _load_rules():
         try:
             rules = yara.compile(
                 source=BUILTIN_RULES,
-                externals={'filepath': '', 'filename': '', 'extension': '', 'filetype': ''}
+                externals={'filepath': '', 'filename': '', 'extension': ''}
             )
             logger.info("[YARA] Built-in rules compiled successfully.")
             return rules
@@ -257,7 +260,6 @@ def scan_file(filepath: str) -> dict:
                 'filepath': filepath,
                 'filename': path.name,
                 'extension': path.suffix,
-                'filetype': '',
             }
         )
         result["matches"] = [
