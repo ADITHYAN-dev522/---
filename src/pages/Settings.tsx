@@ -14,7 +14,7 @@ export default function Settings() {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col gap-2"
       >
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#9D4EDD] via-[#00D9FF] to-[#00E676] bg-clip-text text-transparent">Settings</h1>
         <p className="text-muted-foreground">
           Configure system preferences and security policies
         </p>
