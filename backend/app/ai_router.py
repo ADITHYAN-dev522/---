@@ -117,11 +117,12 @@ def ai_chat(body: ChatRequest, request: Request):
 
     prompt = "\n".join(prompt_parts)
 
-    gemini_key = os.getenv("GEMINI_API_KEY")
+    # Try both uppercase and lowercase just in case
+    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("gemini_api_key")
     gemini_error = ""
     
     # ── Try Gemini First ──
-    if gemini_key and gemini_key != "your_gemini_api_key_here":
+    if gemini_key and "your_gemini" not in gemini_key:
         try:
             gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
             gemini_payload = {"contents": [{"parts": [{"text": prompt}]}]}
