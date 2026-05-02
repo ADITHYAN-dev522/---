@@ -51,11 +51,16 @@ def _init_db(con: sqlite3.Connection) -> None:
     con.commit()
 
 
+_con: sqlite3.Connection | None = None
+
+
 def _get_con() -> sqlite3.Connection:
-    con = sqlite3.connect(str(DB_PATH), check_same_thread=False)
-    con.row_factory = sqlite3.Row
-    _init_db(con)
-    return con
+    global _con
+    if _con is None:
+        _con = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+        _con.row_factory = sqlite3.Row
+        _init_db(_con)
+    return _con
 
 
 # ─── Write helpers ────────────────────────────────────────────────────────────

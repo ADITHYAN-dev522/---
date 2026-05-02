@@ -424,6 +424,14 @@ def wazuh_alerts(limit: int = 20):
     try:
         data = fetch_alerts(limit)
         hits = data.get("hits", {}).get("hits", [])
-        return [normalize(h) for h in hits]
-    except Exception as e:
+        normalized = [normalize(h) for h in hits]
+        # Persist to disk so the risk scorer can incorporate Wazuh data
+        try:
+            (SCANS_DIR / "wazuh_alerts.json").write_text(
+                json.dumps(normalized, indent=2)
+            )
+        except Exception:
+            pass
+        return normalized
+    except Exception:
         return []

@@ -50,29 +50,20 @@ export default function Dashboard() {
   const [threatEvents, setThreatEvents] = useState<ThreatEvent[]>([]);
   const [riskScore, setRiskScore] = useState<RiskScore | null>(null);
 
-  /* ── Backend health check ── */
+  /* ── Combined fetch — all data loads in one parallel burst ── */
   useEffect(() => {
-    fetch("/api/health")
-      .then(r => r.ok ? setBackendStatus("online") : setBackendStatus("offline"))
-      .catch(() => setBackendStatus("offline"));
-  }, []);
-
-  /* ── Telemetry ── */
-  useEffect(() => {
-    fetch("/api/telemetry/latest", { cache: "no-store" })
-      .then(r => r.json()).then(setTelemetry).catch(() => setTelemetry(null));
-  }, []);
-
-  /* ── Real threat events from ThreatSentinel ── */
-  useEffect(() => {
-    fetch("/api/threat-sentinel/events?limit=6", { cache: "no-store" })
-      .then(r => r.json()).then(d => setThreatEvents(Array.isArray(d) ? d : [])).catch(() => setThreatEvents([]));
-  }, []);
-
-  /* ── Risk score ── */
-  useEffect(() => {
-    fetch("/api/risk/score", { cache: "no-store" })
-      .then(r => r.json()).then(setRiskScore).catch(() => setRiskScore(null));
+    const safeJson = (r: Response) => r.ok ? r.json() : Promise.reject(r.status);
+    Promise.all([
+      fetch("/api/health").then(r => r.ok ? "online" : "offline"),
+      fetch("/api/telemetry/latest",              { cache: "no-store" }).then(safeJson).catch(() => null),
+      fetch("/api/threat-sentinel/events?limit=6", { cache: "no-store" }).then(safeJson).catch(() => []),
+      fetch("/api/risk/score",                    { cache: "no-store" }).then(safeJson).catch(() => null),
+    ]).then(([health, tel, events, risk]) => {
+      setBackendStatus(health as "online" | "offline");
+      setTelemetry(tel ?? null);
+      setThreatEvents(Array.isArray(events) ? events : []);
+      setRiskScore(risk ?? null);
+    }).catch(() => setBackendStatus("offline"));
   }, []);
 
   const normalizedTelemetry = telemetry && {

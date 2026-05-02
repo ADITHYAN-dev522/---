@@ -1,16 +1,24 @@
 import requests
 import urllib3
+import os
 
 urllib3.disable_warnings()
 
-INDEXER_URL = "https://localhost:9200"
-USERNAME = "admin"
-PASSWORD = "tME2dI1XLGayCyTj*.um9Mv7ht3i5WF7"
+INDEXER_URL = os.getenv("WAZUH_INDEXER_URL", "https://localhost:9200")
+USERNAME    = os.getenv("WAZUH_INDEXER_USER", "admin")
+PASSWORD    = os.getenv("WAZUH_INDEXER_PASSWORD", "")
 
-def fetch_alerts(limit=20):
+
+def fetch_alerts(limit: int = 20) -> dict:
+    if not PASSWORD:
+        raise RuntimeError(
+            "WAZUH_INDEXER_PASSWORD env var is not set. "
+            "Add it to backend/.env or export it in your shell."
+        )
+
     query = {
         "size": limit,
-        "sort": [{"@timestamp": {"order": "desc"}}]
+        "sort": [{"@timestamp": {"order": "desc"}}],
     }
 
     r = requests.post(
@@ -18,7 +26,7 @@ def fetch_alerts(limit=20):
         auth=(USERNAME, PASSWORD),
         json=query,
         verify=False,
-        timeout=10
+        timeout=10,
     )
     r.raise_for_status()
     return r.json()

@@ -53,6 +53,12 @@ def _ingest_malware(events: list[dict]) -> None:
     infected  = data.get("clamav", {}).get("infected_count", 0)
     detections = data.get("clamav", {}).get("detections", [])
 
+    # Load existing open incidents to avoid duplicates
+    try:
+        existing_titles = {i["title"] for i in memory.get_incidents(status="open", limit=2000)}
+    except Exception:
+        existing_titles = set()
+
     if infected > 0:
         sev = _sev_from_score(score)
         for det in detections:
@@ -67,11 +73,11 @@ def _ingest_malware(events: list[dict]) -> None:
                 "status":    "open",
             }
             events.append(event)
-            # persist to SQLite
-            inc_id = memory.add_incident("malware_detection", sev, "ClamAV",
-                                         f"Malware: {det}", {"path": det, "score": score})
-            event["id"] = inc_id
-            memory.update_pattern(f"clamav:{det}", sev)
+            if event["title"] not in existing_titles:
+                inc_id = memory.add_incident("malware_detection", sev, "ClamAV",
+                                             f"Malware: {det}", {"path": det, "score": score})
+                event["id"] = inc_id
+                memory.update_pattern(f"clamav:{det}", sev)
 
     # YARA results (if present)
     yara_file = SCANS_DIR / "malware" / "yara_results.json"
@@ -112,6 +118,12 @@ def _ingest_vulnerabilities(events: list[dict]) -> None:
     except Exception:
         return
 
+    # Load existing open incidents to avoid duplicates
+    try:
+        existing_titles = {i["title"] for i in memory.get_incidents(status="open", limit=2000)}
+    except Exception:
+        existing_titles = set()
+
     timestamp = data.get("timestamp", datetime.utcnow().isoformat())
     for _dir, scanners in data.get("results", {}).items():
         trivy = scanners.get("trivy", {})
@@ -134,7 +146,7 @@ def _ingest_vulnerabilities(events: list[dict]) -> None:
                     "status":    "open",
                 }
                 events.append(event)
-                if sev in ("critical", "high"):
+                if sev in ("critical", "high") and title not in existing_titles:
                     inc_id = memory.add_incident(
                         "vulnerability", sev, "Trivy", title,
                         {"cve": cve, "pkg": pkg})

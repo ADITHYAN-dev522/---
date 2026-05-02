@@ -41,9 +41,10 @@ MALWARE_SCHEDULED = MALWARE_DIR / "scheduled"
 for d in (TELEMETRY_DIR, MALWARE_DIR, MALWARE_SCHEDULED):
     d.mkdir(parents=True, exist_ok=True)
 
-# ─── Scan targets ─────────────────────────────────────────────────────────────
-SCAN_DIRS = ["/home/kali/Music"]
-MALWARE_SCAN_DIRS = ["/home/kali/Music"]
+# ─── Scan targets (configurable via env vars) ─────────────────────────────────
+import os as _os
+SCAN_DIRS         = [d.strip() for d in _os.getenv("SCAN_DIRS",         "/home/kali/Music").split(",")]
+MALWARE_SCAN_DIRS = [d.strip() for d in _os.getenv("MALWARE_SCAN_DIRS", "/home/kali/Music").split(",")]
 
 SAVE_PATH   = SCANS_DIR / "latest.json"
 HISTORY_DIR = SCANS_DIR / "history"

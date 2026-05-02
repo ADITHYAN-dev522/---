@@ -102,26 +102,34 @@ def get_recommendations(limit: int = 50) -> list[dict]:
         # ── OSV  ──────────────────────────────────────────────────────────────
         osv = scanners.get("osv", {})
         if isinstance(osv, dict):
-            for v in osv.get("results", []):
-                osv_id = v.get("id") or v.get("osv_id", "")
-                if osv_id in seen_cves:
-                    continue
-                seen_cves.add(osv_id)
+            for r in osv.get("results", []):
+                for pkg_entry in r.get("packages", []):
+                    pkg_name  = pkg_entry.get("package", {}).get("name", "unknown")
+                    ecosystem = pkg_entry.get("package", {}).get("ecosystem", "")
+                    for v in pkg_entry.get("vulnerabilities", []):
+                        osv_id = v.get("id", "")
+                        if not osv_id or osv_id in seen_cves:
+                            continue
+                        seen_cves.add(osv_id)
 
-                pkg_name = v.get("package", {}).get("name", "unknown") if isinstance(v.get("package"), dict) else "unknown"
-                recs.append({
-                    "cve":              osv_id,
-                    "severity":         "medium",
-                    "package":          pkg_name,
-                    "installed_version": "see OSV",
-                    "fixed_version":    "see OSV advisory",
-                    "title":            v.get("summary", ""),
-                    "package_manager":  "unknown",
-                    "fix_command":      f"Update {pkg_name} — see OSV advisory",
-                    "reference":        f"https://osv.dev/vulnerability/{osv_id}",
-                    "can_auto_patch":   False,
-                    "source":           "osv",
-                })
+                        # Try to extract severity from database_specific
+                        raw_sev = (
+                            v.get("database_specific", {}).get("severity", "medium")
+                        ).lower()
+
+                        recs.append({
+                            "cve":              osv_id,
+                            "severity":         raw_sev if raw_sev in ("critical", "high", "medium", "low") else "medium",
+                            "package":          pkg_name,
+                            "installed_version": "see OSV",
+                            "fixed_version":    "see OSV advisory",
+                            "title":            v.get("summary", ""),
+                            "package_manager":  _pkg_mgr(ecosystem, pkg_name),
+                            "fix_command":      f"Update {pkg_name} — see OSV advisory",
+                            "reference":        f"https://osv.dev/vulnerability/{osv_id}",
+                            "can_auto_patch":   False,
+                            "source":           "osv",
+                        })
 
     # Sort: critical → high → medium → low
     order = {"critical": 0, "high": 1, "medium": 2, "low": 3}

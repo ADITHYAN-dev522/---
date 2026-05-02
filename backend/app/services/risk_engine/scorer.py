@@ -72,13 +72,13 @@ def compute_risk_score() -> dict:
                         if sev == "CRITICAL": crit_count += 1
                         elif sev == "HIGH":   high_count += 1
 
-    breakdown["vulnerabilities"] = min(15, crit_count * 3 + high_count)
+    breakdown["vulnerabilities"] = min(10, crit_count * 3 + high_count)
 
     # ── Wazuh (optional) ──────────────────────────────────────────────────────
     wazuh_alerts = _load_json(SCANS_DIR / "wazuh_alerts.json")
     if isinstance(wazuh_alerts, list) and wazuh_alerts:
         high_sev = [a for a in wazuh_alerts if int(a.get("severity", 0)) >= 7]
-        breakdown["wazuh"] = min(5, len(high_sev))
+        breakdown["wazuh"] = min(15, len(high_sev) * 3)
 
     total_score = sum(breakdown.values())
     total_score = min(100, max(0, total_score))

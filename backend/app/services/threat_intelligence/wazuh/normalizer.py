@@ -1,9 +1,16 @@
-def normalize(hit):
-    src = hit.get("_source", {})
+def normalize(hit: dict) -> dict:
+    """Convert a raw Wazuh Indexer hit into a flat, frontend-friendly dict."""
+    src  = hit.get("_source", {})
+    rule = src.get("rule", {})
     return {
+        "id":        hit.get("_id"),
         "timestamp": src.get("@timestamp"),
-        "severity": src.get("rule", {}).get("level"),
-        "rule": src.get("rule", {}).get("description"),
-        "agent": src.get("agent", {}).get("name"),
-        "source": "wazuh"
+        "severity":  rule.get("level"),
+        "rule":      rule.get("description"),
+        "rule_id":   rule.get("id"),
+        "groups":    rule.get("groups", []),
+        "agent":     src.get("agent", {}).get("name"),
+        "location":  src.get("location"),
+        "mitre":     rule.get("mitre", {}),
+        "source":    "wazuh",
     }
