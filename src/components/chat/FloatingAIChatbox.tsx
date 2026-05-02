@@ -155,13 +155,13 @@ export default function FloatingAIChatbox() {
           >
             <Button
               onClick={() => setIsOpen(true)}
-              className="relative h-16 w-16 rounded-full bg-gradient-to-br from-[#9D4EDD] via-[#FF1744] to-[#00D9FF] p-0 shadow-2xl hover:scale-110 transition-transform"
-              style={{ boxShadow: "0 0 40px rgba(157,78,221,0.6), 0 0 80px rgba(0,217,255,0.4)" }}
+              className="relative h-16 w-16 rounded-full bg-gradient-to-br from-[#22D3EE] via-[#38BDF8] to-[#818CF8] p-0 shadow-2xl hover:scale-110 transition-transform"
+              style={{ boxShadow: "0 0 40px rgba(34,211,238,0.5), 0 0 70px rgba(56,189,248,0.3)" }}
             >
               <motion.div
-                className="absolute inset-0 rounded-full bg-gradient-to-br from-[#9D4EDD] via-[#FF1744] to-[#00D9FF] opacity-50 blur-xl"
-                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 rounded-full bg-gradient-to-br from-[#22D3EE] via-[#38BDF8] to-[#818CF8] opacity-40 blur-xl"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
               />
               <MessageCircle className="relative h-8 w-8 text-white" />
               {/* Online indicator */}
@@ -192,19 +192,19 @@ export default function FloatingAIChatbox() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-8 right-8 z-50 w-[440px] rounded-2xl border-2 border-[#9D4EDD]/50 bg-black/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col"
+            className="fixed bottom-8 right-8 z-50 w-[440px] rounded-2xl border border-primary/30 bg-[hsl(220_16%_7%/0.97)] backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col"
             style={{
               maxHeight: "600px",
               minHeight: "400px",
-              boxShadow: "0 0 60px rgba(157,78,221,0.4), inset 0 0 60px rgba(0,217,255,0.05)",
+              boxShadow: "0 0 50px rgba(34,211,238,0.20), 0 25px 50px rgba(0,0,0,0.8)",
             }}
           >
             {/* Header */}
-            <div className="relative border-b border-[#9D4EDD]/30 bg-gradient-to-r from-[#9D4EDD]/20 to-[#00D9FF]/20 p-4 shrink-0">
+            <div className="relative border-b border-primary/20 bg-gradient-to-r from-primary/10 to-secondary/10 p-4 shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}>
-                    <Sparkles className="h-5 w-5 text-[#9D4EDD]" />
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }}>
+                    <Sparkles className="h-5 w-5 text-primary" />
                   </motion.div>
                   <div>
                     <h3 className="font-semibold text-white text-sm">AI Security Analyst</h3>
@@ -214,7 +214,7 @@ export default function FloatingAIChatbox() {
                         animate={{ opacity: [1, 0.5, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                       />
-                      <p className="text-xs text-white/60">{loading ? "Thinking…" : "Online"}</p>
+                      <p className="text-xs text-white/60">{loading ? "Analyzing…" : "Ready"}</p>
                     </div>
                   </div>
                 </div>
@@ -308,14 +308,14 @@ export default function FloatingAIChatbox() {
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                       msg.role === "user"
-                        ? "bg-gradient-to-br from-[#9D4EDD] to-[#FF1744] text-white"
-                        : "bg-white/5 border border-[#00D9FF]/20 text-white"
+                        ? "bg-gradient-to-br from-primary to-secondary text-background"
+                        : "bg-white/5 border border-primary/20 text-foreground"
                     }`}
                     style={{
                       boxShadow:
                         msg.role === "assistant"
-                          ? "0 0 20px rgba(0,217,255,0.12)"
-                          : "0 0 20px rgba(157,78,221,0.25)",
+                          ? "0 0 16px rgba(34,211,238,0.10)"
+                          : "0 0 16px rgba(34,211,238,0.20)",
                     }}
                   >
                     <div>{renderContent(msg.content)}</div>
@@ -330,11 +330,11 @@ export default function FloatingAIChatbox() {
               {loading && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
                   <div className="bg-white/5 border border-[#00D9FF]/20 rounded-2xl px-4 py-3 flex items-center gap-1.5">
-                    {[0, 0.2, 0.4].map((delay, i) => (
+                    {[0, 0.18, 0.36].map((delay, i) => (
                       <motion.div key={i}
-                        className="w-2 h-2 rounded-full bg-[#00D9FF]/60"
-                        animate={{ y: [0, -4, 0] }}
-                        transition={{ duration: 0.7, delay, repeat: Infinity }}
+                        className="w-2 h-2 rounded-full bg-primary/70"
+                        animate={{ y: [0, -5, 0], opacity: [0.6, 1, 0.6] }}
+                        transition={{ duration: 0.65, delay, repeat: Infinity }}
                       />
                     ))}
                   </div>
@@ -343,22 +343,22 @@ export default function FloatingAIChatbox() {
             </div>
 
             {/* Input bar */}
-            <div className="border-t border-[#9D4EDD]/30 bg-black/60 backdrop-blur-sm p-4 shrink-0">
+            <div className="border-t border-primary/20 bg-black/40 backdrop-blur-sm p-4 shrink-0">
               <div className="flex items-center gap-2">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
                   placeholder="Ask about vulnerabilities, threats, or paste data…"
-                  className="flex-1 bg-white/5 border-white/20 focus:border-[#9D4EDD]/60 text-white placeholder:text-white/30 text-sm"
+                  className="flex-1 bg-white/5 border-white/15 focus:border-primary/50 text-foreground placeholder:text-muted-foreground text-sm"
                   disabled={loading}
                 />
                 <Button
                   onClick={handleSend}
                   disabled={loading || !input.trim()}
                   size="sm"
-                  className="h-10 w-10 p-0 bg-gradient-to-br from-[#9D4EDD] to-[#00D9FF] hover:scale-105 transition-transform disabled:opacity-40"
-                  style={{ boxShadow: "0 0 20px rgba(157,78,221,0.4)" }}
+                  className="h-10 w-10 p-0 bg-gradient-to-br from-primary to-secondary hover:scale-105 transition-transform disabled:opacity-40"
+                  style={{ boxShadow: "0 0 16px rgba(34,211,238,0.35)" }}
                 >
                   <Send className="h-4 w-4" />
                 </Button>
