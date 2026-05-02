@@ -1,154 +1,113 @@
-import { motion } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { RotateCw, ShieldAlert, AlertTriangle, Activity } from "lucide-react";
 
-const alerts = [
-  {
-    id: "ALT-001",
-    timestamp: "2025-01-15 14:23:12",
-    severity: "critical",
-    type: "Malware Detection",
-    source: "192.168.1.105",
-    status: "investigating",
-  },
-  {
-    id: "ALT-002",
-    timestamp: "2025-01-15 14:18:45",
-    severity: "high",
-    type: "Suspicious Login",
-    source: "10.0.2.48",
-    status: "resolved",
-  },
-  {
-    id: "ALT-003",
-    timestamp: "2025-01-15 14:12:33",
-    severity: "medium",
-    type: "Port Scan",
-    source: "172.16.0.23",
-    status: "monitoring",
-  },
-  {
-    id: "ALT-004",
-    timestamp: "2025-01-15 14:05:18",
-    severity: "low",
-    type: "Failed Authentication",
-    source: "192.168.1.87",
-    status: "resolved",
-  },
-  {
-    id: "ALT-005",
-    timestamp: "2025-01-15 13:58:42",
-    severity: "high",
-    type: "DDoS Attempt",
-    source: "203.0.113.45",
-    status: "blocked",
-  },
-];
-
-const severityConfig = {
-  critical: "bg-destructive text-destructive-foreground",
-  high: "bg-destructive/70 text-destructive-foreground",
-  medium: "bg-warning text-warning-foreground",
-  low: "bg-success/70 text-success-foreground",
+type ThreatEvent = {
+  id: string | null;
+  timestamp: string;
+  type: string;
+  scanner: string;
+  severity: string;
+  title: string;
+  status: string;
 };
 
-const statusConfig = {
-  investigating: "bg-warning/20 text-warning border-warning/50",
-  resolved: "bg-success/20 text-success border-success/50",
-  monitoring: "bg-info/20 text-info border-info/50",
-  blocked: "bg-destructive/20 text-destructive border-destructive/50",
+const SEV: Record<string, { color: string; bg: string }> = {
+  critical: { color: "#F87171", bg: "rgba(248,113,113,0.12)" },
+  high:     { color: "#FB923C", bg: "rgba(251,146,60,0.10)"  },
+  medium:   { color: "#FBBF24", bg: "rgba(251,191,36,0.09)"  },
+  low:      { color: "#34D399", bg: "rgba(52,211,153,0.08)"  },
+};
+
+const SEV_ICON: Record<string, React.ElementType> = {
+  critical: ShieldAlert,
+  high:     AlertTriangle,
+  medium:   Activity,
+  low:      Activity,
 };
 
 export function RecentAlerts() {
+  const [events, setEvents] = useState<ThreatEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetch_ = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/threat-sentinel/events?limit=8", { cache: "no-store" });
+      if (res.ok) {
+        const d = await res.json();
+        setEvents(Array.isArray(d) ? d.slice(0, 8) : []);
+      }
+    } catch (_) {}
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetch_(); }, [fetch_]);
+
   return (
-    <Card className="glass-effect border-secondary/30 relative overflow-hidden group hover:border-secondary/60 transition-all">
-      {/* Corner decoration */}
-      <motion.div
-        className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-secondary/20 to-transparent rounded-tr-full"
-        animate={{ rotate: [0, 360] }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-      />
-
+    <Card className="glass-effect border-primary/20 relative overflow-hidden">
       <div className="p-6 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <h3 className="text-lg font-semibold mb-1">Recent Alerts</h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            Latest security events requiring attention
-          </p>
-        </motion.div>
-
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="font-semibold">Alert ID</TableHead>
-                <TableHead className="font-semibold">Timestamp</TableHead>
-                <TableHead className="font-semibold">Severity</TableHead>
-                <TableHead className="font-semibold">Type</TableHead>
-                <TableHead className="font-semibold">Source</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {alerts.map((alert, index) => (
-                <motion.tr
-                  key={alert.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.05 }}
-                  whileHover={{ x: 4, backgroundColor: "hsl(var(--muted) / 0.3)" }}
-                  className="border-b border-border group cursor-pointer"
-                >
-                  {/* Hover accent line */}
-                  <motion.div
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-secondary"
-                    initial={{ scaleY: 0 }}
-                    whileHover={{ scaleY: 1 }}
-                    transition={{ duration: 0.2 }}
-                  />
-                  <TableCell className="font-mono text-sm font-medium">
-                    {alert.id}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {alert.timestamp}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={`${severityConfig[alert.severity as keyof typeof severityConfig]} font-medium`}
-                    >
-                      {alert.severity.toUpperCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{alert.type}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {alert.source}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={statusConfig[alert.status as keyof typeof statusConfig]}
-                    >
-                      {alert.status}
-                    </Badge>
-                  </TableCell>
-                </motion.tr>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-lg font-semibold">Recent Threat Events</h3>
+            <p className="text-sm text-muted-foreground">Latest correlated detections from all scanners</p>
+          </div>
+          <button
+            onClick={fetch_}
+            disabled={loading}
+            className="p-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors disabled:opacity-50"
+          >
+            <RotateCw className={`h-4 w-4 text-primary ${loading ? "animate-spin" : ""}`} />
+          </button>
         </div>
+
+        {events.length === 0 && !loading ? (
+          <div className="flex flex-col items-center gap-2 py-10 text-center">
+            <ShieldAlert className="h-10 w-10 text-primary/20" />
+            <p className="text-sm text-muted-foreground">No events yet — backend may still be scanning.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <AnimatePresence>
+              {events.map((e, i) => {
+                const s = SEV[e.severity] ?? { color: "#94A3B8", bg: "rgba(148,163,184,0.07)" };
+                const Icon = SEV_ICON[e.severity] ?? Activity;
+                return (
+                  <motion.div
+                    key={`${e.id}-${i}`}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="flex items-center gap-3 p-3 rounded-xl border-l-4 group hover:brightness-110 transition-all"
+                    style={{ borderLeftColor: s.color, background: s.bg, border: `1px solid ${s.color}20`, borderLeft: `3px solid ${s.color}` }}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" style={{ color: s.color }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{e.title}</p>
+                      <p className="text-xs text-muted-foreground">{e.scanner} · {new Date(e.timestamp).toLocaleTimeString()}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                        style={{ color: s.color, background: `${s.color}20`, border: `1px solid ${s.color}30` }}
+                      >
+                        {e.severity.toUpperCase()}
+                      </span>
+                      <Badge variant={e.status === "open" ? "destructive" : "secondary"} className="text-[10px]">
+                        {e.status}
+                      </Badge>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
+      {/* Bottom gradient accent */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-primary opacity-40" />
     </Card>
   );
 }

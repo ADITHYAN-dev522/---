@@ -1,108 +1,106 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
-const data = [
-  { time: "00:00", detections: 12, threats: 2 },
-  { time: "04:00", detections: 19, threats: 5 },
-  { time: "08:00", detections: 27, threats: 8 },
-  { time: "12:00", detections: 45, threats: 12 },
-  { time: "16:00", detections: 38, threats: 9 },
-  { time: "20:00", detections: 31, threats: 6 },
-  { time: "23:00", detections: 24, threats: 4 },
-];
+type ThreatEvent = { timestamp: string; severity: string };
+
+function buildTimeline(events: ThreatEvent[]) {
+  // Group events into 6 hourly buckets (last 24h)
+  const now = Date.now();
+  const buckets: { time: string; threats: number; critical: number }[] = [];
+  for (let h = 20; h >= 0; h -= 4) {
+    const label = new Date(now - h * 3_600_000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const from  = now - (h + 4) * 3_600_000;
+    const to    = now - h * 3_600_000;
+    const bucket = events.filter(e => {
+      const t = new Date(e.timestamp).getTime();
+      return t >= from && t < to;
+    });
+    buckets.push({
+      time: label,
+      threats:  bucket.length,
+      critical: bucket.filter(e => e.severity === "critical" || e.severity === "high").length,
+    });
+  }
+  return buckets;
+}
 
 export function DetectionChart() {
+  const [data, setData] = useState<ReturnType<typeof buildTimeline>>([]);
+
+  useEffect(() => {
+    fetch("/api/threat-sentinel/events?limit=200", { cache: "no-store" })
+      .then(r => r.ok ? r.json() : [])
+      .then((events: ThreatEvent[]) => setData(buildTimeline(Array.isArray(events) ? events : [])))
+      .catch(() => setData(buildTimeline([])));
+  }, []);
+
   return (
-    <Card className="glass-effect border-accent/30 relative overflow-hidden group hover:border-accent/60 transition-all">
-      {/* Animated corner accents */}
+    <Card className="glass-effect border-primary/20 relative overflow-hidden">
+      {/* Corner accent */}
       <motion.div
-        className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-accent/20 to-transparent rounded-bl-full"
-        animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.7, 0.5] }}
-        transition={{ duration: 3, repeat: Infinity }}
+        className="absolute top-0 right-0 w-28 h-28 rounded-bl-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, hsl(185 85% 52% / 0.12), transparent 70%)" }}
+        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.8, 0.5] }}
+        transition={{ duration: 4, repeat: Infinity }}
       />
-      
+
       <div className="p-6 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h3 className="text-lg font-semibold mb-1">Detection Timeline</h3>
-          <p className="text-sm text-muted-foreground mb-6">
-            Last 24 hours activity
-          </p>
-        </motion.div>
+        <div className="mb-5">
+          <h3 className="text-lg font-semibold">Detection Timeline</h3>
+          <p className="text-sm text-muted-foreground">Threat event distribution over the last 24 hours</p>
+        </div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.2 }}
         >
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={data}>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
-                <linearGradient id="colorDetections" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                <linearGradient id="gThreats" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#22D3EE" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#22D3EE" stopOpacity={0}   />
                 </linearGradient>
-                <linearGradient id="colorThreats" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
+                <linearGradient id="gCritical" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#F87171" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#F87171" stopOpacity={0}   />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
-                opacity={0.3}
-              />
-              <XAxis
-                dataKey="time"
-                stroke="hsl(var(--muted-foreground))"
-                style={{ fontSize: 12 }}
-              />
-              <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                style={{ fontSize: 12 }}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 16%)" opacity={0.5} />
+              <XAxis dataKey="time" stroke="#475569" tick={{ fontSize: 11 }} />
+              <YAxis stroke="#475569" tick={{ fontSize: 11 }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "var(--radius)",
-                  color: "hsl(var(--foreground))",
+                  background: "hsl(220 16% 9%)",
+                  border: "1px solid hsl(220 14% 16%)",
+                  borderRadius: "8px",
+                  color: "#e2e8f0",
+                  fontSize: 12,
                 }}
               />
+              <Legend wrapperStyle={{ fontSize: 12, color: "#64748b" }} />
               <Area
-                type="monotone"
-                dataKey="detections"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                fill="url(#colorDetections)"
-                animationDuration={1500}
+                type="monotone" dataKey="threats" name="All Events"
+                stroke="#22D3EE" strokeWidth={2} fill="url(#gThreats)"
+                animationDuration={1200}
               />
               <Area
-                type="monotone"
-                dataKey="threats"
-                stroke="hsl(var(--destructive))"
-                strokeWidth={2}
-                fill="url(#colorThreats)"
-                animationDuration={1500}
+                type="monotone" dataKey="critical" name="Critical/High"
+                stroke="#F87171" strokeWidth={2} fill="url(#gCritical)"
+                animationDuration={1400}
               />
             </AreaChart>
           </ResponsiveContainer>
         </motion.div>
       </div>
+
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-primary opacity-30" />
     </Card>
   );
 }
