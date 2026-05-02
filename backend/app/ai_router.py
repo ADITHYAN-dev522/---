@@ -159,7 +159,6 @@ def ai_chat(body: ChatRequest, request: Request):
         return {"reply": reply, "model": f"{AI_MODEL} (fallback)"}
         
     except Exception as ollama_e:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Both AI providers failed. {gemini_error} | Ollama fallback error: {str(ollama_e)}"
-        )
+        error_msg = f"Both AI providers failed. {gemini_error} | Ollama fallback error: {str(ollama_e)}"
+        print(f"\n[!] AI ROUTER ERROR: {error_msg}\n")
+        raise HTTPException(status_code=500, detail=error_msg)
