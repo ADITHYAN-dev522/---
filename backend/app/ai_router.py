@@ -117,56 +117,48 @@ def ai_chat(body: ChatRequest, request: Request):
 
     prompt = "\n".join(prompt_parts)
 
-    payload = {
-        "model":      AI_MODEL,
-        "prompt":     prompt,
-        "max_tokens": 512,
-        "stream":     False,
-    }
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    gemini_error = ""
+    
+    # ── Try Gemini First ──
+    if gemini_key and gemini_key != "your_gemini_api_key_here":
+        try:
+            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+            gemini_payload = {"contents": [{"parts": [{"text": prompt}]}]}
+            gemini_resp = requests.post(gemini_url, json=gemini_payload, timeout=30)
+            gemini_resp.raise_for_status()
+            
+            gemini_data = gemini_resp.json()
+            reply = gemini_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Error parsing Gemini response")
+            return {"reply": reply, "model": "gemini-2.5-flash"}
+        except Exception as e:
+            gemini_error = f"Gemini error: {str(e)}"
+    else:
+        gemini_error = "GEMINI_API_KEY not configured"
 
+    # ── Fallback to Ollama ──
     try:
-        resp = requests.post(OLLAMA_API, json=payload, timeout=5)
+        ollama_payload = {
+            "model":      AI_MODEL,
+            "prompt":     prompt,
+            "max_tokens": 512,
+            "stream":     False,
+        }
+        resp = requests.post(OLLAMA_API, json=ollama_payload, timeout=5)
         resp.raise_for_status()
         data = resp.json()
         
-        # Parse Ollama response
         if isinstance(data, dict):
-            if "response" in data:
-                reply = data["response"]
-            elif "generated_text" in data:
-                reply = data["generated_text"]
-            elif "message" in data and isinstance(data["message"], dict):
-                reply = data["message"].get("content", "")
-            else:
+            reply = data.get("response") or data.get("generated_text") or (data.get("message") or {}).get("content", "")
+            if not reply:
                 reply = str(data)
         else:
             reply = str(data)
             
-        return {"reply": reply, "model": AI_MODEL}
+        return {"reply": reply, "model": f"{AI_MODEL} (fallback)"}
         
-    except Exception as e:
-        # Fallback to Gemini if Ollama fails/is offline
-        gemini_key = os.getenv("GEMINI_API_KEY")
-        if not gemini_key or gemini_key == "your_gemini_api_key_here":
-            raise HTTPException(
-                status_code=500, 
-                detail=f"Ollama is offline and GEMINI_API_KEY is missing. Error: {str(e)}"
-            )
-            
-        try:
-            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
-            gemini_payload = {
-                "contents": [{"parts": [{"text": prompt}]}]
-            }
-            gemini_resp = requests.post(gemini_url, json=gemini_payload, timeout=30)
-            gemini_resp.raise_for_status()
-            gemini_data = gemini_resp.json()
-            
-            reply = gemini_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Error parsing Gemini response")
-            return {"reply": reply, "model": "gemini-2.5-flash (fallback)"}
-            
-        except Exception as gemini_e:
-            raise HTTPException(
-                status_code=500, 
-                detail=f"Both Ollama and Gemini fallback failed. Gemini Error: {str(gemini_e)}"
-            )
+    except Exception as ollama_e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Both AI providers failed. {gemini_error} | Ollama fallback error: {str(ollama_e)}"
+        )
