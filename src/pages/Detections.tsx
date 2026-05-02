@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, RotateCw, ShieldAlert, AlertTriangle, Activity, Clock } from "lucide-react";
+import { SkeletonFeed } from "@/components/ui/skeleton-loader";
 
 /* ========================= TYPES ========================= */
 type ThreatEvent = {
@@ -137,6 +138,8 @@ export default function Detections() {
               ? "No threat events yet. Backend may still be running its first scan."
               : "No events match the current filter."}
           </p>
+        ) : loading && events.length === 0 ? (
+          <SkeletonFeed rows={6} />
         ) : (
           <div className="space-y-3">
             <AnimatePresence>

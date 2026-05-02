@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Zap, CheckCircle, RefreshCw, Copy, Package, Terminal, AlertTriangle, Filter, ExternalLink } from "lucide-react";
+import { SkeletonStats, SkeletonFeed } from "@/components/ui/skeleton-loader";
 
 /* ========================= TYPES ========================= */
 type Recommendation = {
@@ -111,7 +112,7 @@ export default function Response() {
     <div className="space-y-6">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#00D9FF] to-[#9D4EDD] bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#34D399] via-[#22D3EE] to-[#38BDF8] bg-clip-text text-transparent">
           PatchMaster — Automated Response
         </h1>
         <p className="text-muted-foreground">
@@ -120,23 +121,28 @@ export default function Response() {
       </motion.div>
 
       {/* Stats row */}
+      {loading && recs.length === 0 ? <SkeletonStats /> : (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Recommendations", value: recs.length,  color: "#00D9FF", icon: Zap },
-          { label: "Auto-Patchable",        value: autoCount,    color: "#00E676", icon: CheckCircle },
-          { label: "Critical Priority",     value: counts.critical, color: "#FF1744", icon: AlertTriangle },
-          { label: "High Priority",         value: counts.high,  color: "#FF6D00", icon: AlertTriangle },
+          { label: "Total Recommendations", value: recs.length,     color: "#22D3EE", icon: Zap },
+          { label: "Auto-Patchable",        value: autoCount,       color: "#34D399", icon: CheckCircle },
+          { label: "Critical Priority",    value: counts.critical,  color: "#F87171", icon: AlertTriangle },
+          { label: "High Priority",        value: counts.high,      color: "#FB923C", icon: AlertTriangle },
         ].map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, scale: 0.93 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.08 }}>
-            <Card className="p-5 bg-black/40 backdrop-blur-xl border text-center relative overflow-hidden group" style={{ borderColor: s.color + "30" }}>
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `linear-gradient(135deg, ${s.color}15, transparent)` }} />
-              <s.icon className="h-6 w-6 mx-auto mb-2" style={{ color: s.color }} />
-              <h3 className="text-3xl font-bold text-white">{s.value}</h3>
+          <motion.div key={s.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }} whileHover={{ y: -2 }}>
+            <Card className="glass-effect p-5 relative overflow-hidden group cursor-default" style={{ borderColor: s.color + "28" }}>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: `radial-gradient(circle at 30% 50%, ${s.color}10, transparent 65%)` }} />
+              <s.icon className="h-5 w-5 mb-3" style={{ color: s.color }} />
+              <h3 className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</h3>
               <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+              <div className="absolute bottom-0 left-0 right-0 h-[2px]"
+                style={{ background: `linear-gradient(90deg, transparent, ${s.color}50, transparent)` }} />
             </Card>
           </motion.div>
         ))}
       </div>
+      )}
 
       {/* Controls row */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -174,16 +180,16 @@ export default function Response() {
       </div>
 
       {/* Remediation list */}
-      <Card className="border-border p-6 bg-black/30 backdrop-blur-xl">
+      <Card className="glass-effect border-primary/20 p-6">
         <h2 className="text-xl font-semibold mb-5 flex items-center gap-2">
-          <Terminal className="h-5 w-5 text-cyan-400" />
+          <Terminal className="h-5 w-5 text-primary" />
           Remediation Playbook
-          <span className="text-sm text-white/30 font-normal ml-1">
+          <span className="text-sm text-muted-foreground font-normal ml-1">
             {filtered.length} of {recs.length} shown
           </span>
         </h2>
 
-        {filtered.length === 0 && !loading ? (
+        {loading && recs.length === 0 ? <SkeletonFeed rows={5} /> : filtered.length === 0 && !loading ? (
           <p className="text-muted-foreground text-center py-10">
             {recs.length === 0
               ? "No recommendations yet. A vulnerability scan must run first."

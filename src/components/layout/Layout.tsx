@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { Footer } from "./Footer";
@@ -15,11 +15,21 @@ const pageVariants = {
   exit:     { opacity: 0, y: -8, transition: { duration: 0.15, ease: "easeIn"  } },
 };
 
+/** Scroll to top whenever the route changes */
+function ScrollReset() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
+  return null;
+}
+
 export function Layout({ children }: LayoutProps) {
   const { pathname } = useLocation();
   return (
     <div className="min-h-screen flex flex-col w-full bg-background relative">
       <ParticleBackground />
+      <ScrollReset />
       <Header />
       <div className="flex flex-1 w-full relative z-10">
         <Sidebar />

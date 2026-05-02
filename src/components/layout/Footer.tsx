@@ -9,8 +9,8 @@ export function Footer() {
       className="border-t border-border bg-card/50 backdrop-blur"
     >
       <div className="flex h-12 items-center justify-center px-6">
-        <p className="text-sm text-muted-foreground">
-          SentinelNexus © 2025 - Advanced Threat Detection Platform
+        <p className="text-xs text-muted-foreground font-mono">
+          SentinelNexus v1.0 &nbsp;·&nbsp; AI-Powered SOC Platform &nbsp;·&nbsp; © 2026
         </p>
       </div>
     </motion.footer>
