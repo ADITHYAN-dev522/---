@@ -10,9 +10,9 @@ import { useLocation } from "react-router-dom";
 interface LayoutProps { children: ReactNode; }
 
 const pageVariants = {
-  initial:  { opacity: 0, y: 12 },
-  animate:  { opacity: 1, y: 0,  transition: { duration: 0.25, ease: "easeOut" } },
-  exit:     { opacity: 0, y: -8, transition: { duration: 0.15, ease: "easeIn"  } },
+  initial:  { opacity: 0, y: 16, filter: "blur(4px)" },
+  animate:  { opacity: 1, y: 0,  filter: "blur(0px)", transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
+  exit:     { opacity: 0, y: -8, filter: "blur(2px)", transition: { duration: 0.2,  ease: "easeIn" } },
 };
 
 /** Scroll to top whenever the route changes */
@@ -34,7 +34,7 @@ export function Layout({ children }: LayoutProps) {
       <div className="flex flex-1 w-full relative z-10">
         <Sidebar />
         <main className="flex-1 overflow-y-auto relative z-10">
-          <div className="container mx-auto p-6">
+          <div className="max-w-[1400px] mx-auto px-5 py-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={pathname}

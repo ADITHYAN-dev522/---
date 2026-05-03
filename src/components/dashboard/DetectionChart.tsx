@@ -9,7 +9,6 @@ import {
 type ThreatEvent = { timestamp: string; severity: string };
 
 function buildTimeline(events: ThreatEvent[]) {
-  // Group events into 6 hourly buckets (last 24h)
   const now = Date.now();
   const buckets: { time: string; threats: number; critical: number }[] = [];
   for (let h = 20; h >= 0; h -= 4) {
@@ -40,19 +39,19 @@ export function DetectionChart() {
   }, []);
 
   return (
-    <Card className="glass-effect border-primary/20 relative overflow-hidden">
-      {/* Corner accent */}
+    <Card className="glass-elevated relative overflow-hidden">
+      {/* Corner glow */}
       <motion.div
-        className="absolute top-0 right-0 w-28 h-28 rounded-bl-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, hsl(185 85% 52% / 0.12), transparent 70%)" }}
-        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 0.8, 0.5] }}
-        transition={{ duration: 4, repeat: Infinity }}
+        className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, hsl(185 85% 50% / 0.08), transparent 70%)" }}
+        animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.7, 0.4] }}
+        transition={{ duration: 5, repeat: Infinity }}
       />
 
-      <div className="p-6 relative z-10">
-        <div className="mb-5">
-          <h3 className="text-lg font-semibold">Detection Timeline</h3>
-          <p className="text-sm text-muted-foreground">Threat event distribution over the last 24 hours</p>
+      <div className="p-5 relative z-10">
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold">Detection Timeline</h3>
+          <p className="text-[11px] text-muted-foreground/50">Threat event distribution — last 24 hours</p>
         </div>
 
         <motion.div
@@ -60,47 +59,52 @@ export function DetectionChart() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gThreats" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#22D3EE" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#22D3EE" stopOpacity={0}   />
+                  <stop offset="5%"  stopColor="#00d4ff" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#00d4ff" stopOpacity={0}   />
                 </linearGradient>
                 <linearGradient id="gCritical" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#F87171" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#F87171" stopOpacity={0}   />
+                  <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0}   />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 14% 16%)" opacity={0.5} />
-              <XAxis dataKey="time" stroke="#475569" tick={{ fontSize: 11 }} />
-              <YAxis stroke="#475569" tick={{ fontSize: 11 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(225 16% 13%)" opacity={0.4} />
+              <XAxis dataKey="time" stroke="#334155" tick={{ fontSize: 10, fill: "#475569" }} />
+              <YAxis stroke="#334155" tick={{ fontSize: 10, fill: "#475569" }} />
               <Tooltip
                 contentStyle={{
-                  background: "hsl(220 16% 9%)",
-                  border: "1px solid hsl(220 14% 16%)",
-                  borderRadius: "8px",
+                  background: "hsl(228 20% 6% / 0.95)",
+                  border: "1px solid hsl(225 16% 15%)",
+                  borderRadius: "10px",
                   color: "#e2e8f0",
-                  fontSize: 12,
+                  fontSize: 11,
+                  backdropFilter: "blur(12px)",
+                  boxShadow: "0 8px 32px hsl(228 20% 5% / 0.5)",
                 }}
               />
-              <Legend wrapperStyle={{ fontSize: 12, color: "#64748b" }} />
+              <Legend wrapperStyle={{ fontSize: 11, color: "#475569" }} />
               <Area
                 type="monotone" dataKey="threats" name="All Events"
-                stroke="#22D3EE" strokeWidth={2} fill="url(#gThreats)"
-                animationDuration={1200}
+                stroke="#00d4ff" strokeWidth={2} fill="url(#gThreats)"
+                animationDuration={1400}
               />
               <Area
                 type="monotone" dataKey="critical" name="Critical/High"
-                stroke="#F87171" strokeWidth={2} fill="url(#gCritical)"
-                animationDuration={1400}
+                stroke="#ef4444" strokeWidth={2} fill="url(#gCritical)"
+                animationDuration={1600}
               />
             </AreaChart>
           </ResponsiveContainer>
         </motion.div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-primary opacity-30" />
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[1px]"
+        style={{ background: "linear-gradient(90deg, transparent, #00d4ff30, transparent)" }}
+      />
     </Card>
   );
 }

@@ -4,37 +4,47 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Settings as SettingsIcon, Bell, Shield, Database } from "lucide-react";
+import { Settings as SettingsIcon, Bell, Shield, Database, Wifi } from "lucide-react";
 
 export default function Settings() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-2"
+        className="flex flex-col gap-1"
       >
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#9D4EDD] via-[#00D9FF] to-[#00E676] bg-clip-text text-transparent">Settings</h1>
-        <p className="text-muted-foreground">
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{
+            background: "linear-gradient(135deg, #8b5cf6, #00d4ff, #10b981)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
+          Settings
+        </h1>
+        <p className="text-sm text-muted-foreground/60">
           Configure system preferences and security policies
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
+          initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="border-border p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Bell className="h-5 w-5 text-primary" />
+          <Card className="glass-elevated p-5">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 rounded-lg" style={{ background: "rgba(0,212,255,0.08)" }}>
+                <Bell className="h-4 w-4 text-cyan-400/80" />
               </div>
-              <h2 className="text-lg font-semibold">Notifications</h2>
+              <h2 className="text-sm font-semibold">Notifications</h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[
                 "Email alerts for critical threats",
                 "Push notifications for incidents",
@@ -43,9 +53,9 @@ export default function Settings() {
               ].map((setting, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                  className="flex items-center justify-between py-2.5 border-b border-border/20 last:border-0"
                 >
-                  <Label htmlFor={`notif-${i}`} className="cursor-pointer">
+                  <Label htmlFor={`notif-${i}`} className="cursor-pointer text-[13px] text-foreground/80">
                     {setting}
                   </Label>
                   <Switch id={`notif-${i}`} defaultChecked={i < 2} />
@@ -56,76 +66,93 @@ export default function Settings() {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.15 }}
         >
-          <Card className="border-border p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Shield className="h-5 w-5 text-primary" />
+          <Card className="glass-elevated p-5">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 rounded-lg" style={{ background: "rgba(139,92,246,0.08)" }}>
+                <Shield className="h-4 w-4 text-purple-400/80" />
               </div>
-              <h2 className="text-lg font-semibold">Security Policies</h2>
+              <h2 className="text-sm font-semibold">Security Policies</h2>
             </div>
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="retention">Log Retention Period (days)</Label>
+                <Label htmlFor="retention" className="text-[12px] text-muted-foreground/60 uppercase tracking-wider">Log Retention Period (days)</Label>
                 <Input
                   id="retention"
                   type="number"
                   defaultValue="90"
-                  className="mt-2 bg-secondary border-border"
+                  className="mt-1.5 bg-muted/20 border-border/30 focus:border-primary/30 rounded-lg h-9 text-sm"
                 />
               </div>
 
               <div>
-                <Label htmlFor="threshold">Threat Alert Threshold</Label>
+                <Label htmlFor="threshold" className="text-[12px] text-muted-foreground/60 uppercase tracking-wider">Threat Alert Threshold</Label>
                 <Input
                   id="threshold"
                   defaultValue="Medium"
-                  className="mt-2 bg-secondary border-border"
+                  className="mt-1.5 bg-muted/20 border-border/30 focus:border-primary/30 rounded-lg h-9 text-sm"
                 />
               </div>
 
-              <div className="pt-2">
-                <Button className="w-full">Save Security Settings</Button>
+              <div className="pt-1">
+                <Button className="w-full h-9 text-xs rounded-lg bg-gradient-to-r from-cyan-600/80 to-purple-600/80 hover:from-cyan-600 hover:to-purple-600 border-0 transition-all">
+                  Save Security Settings
+                </Button>
               </div>
             </div>
           </Card>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.2 }}
           className="lg:col-span-2"
         >
-          <Card className="border-border p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Database className="h-5 w-5 text-primary" />
+          <Card className="glass-elevated p-5">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 rounded-lg" style={{ background: "rgba(16,185,129,0.08)" }}>
+                <Database className="h-4 w-4 text-emerald-400/80" />
               </div>
-              <h2 className="text-lg font-semibold">Data Sources</h2>
+              <h2 className="text-sm font-semibold">Data Sources</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {[
-                { name: "Firewall Logs", status: "Connected", events: "2.4M/day" },
-                { name: "EDR Platform", status: "Connected", events: "1.8M/day" },
-                { name: "Cloud Security", status: "Connected", events: "856K/day" },
-                { name: "Network Traffic", status: "Connected", events: "5.2M/day" },
-                { name: "Email Gateway", status: "Connected", events: "423K/day" },
-                { name: "Identity Provider", status: "Connected", events: "124K/day" },
+                { name: "Firewall Logs",      status: "Connected", events: "2.4M/day", color: "#10b981" },
+                { name: "EDR Platform",        status: "Connected", events: "1.8M/day", color: "#10b981" },
+                { name: "Cloud Security",      status: "Connected", events: "856K/day", color: "#10b981" },
+                { name: "Network Traffic",     status: "Connected", events: "5.2M/day", color: "#10b981" },
+                { name: "Email Gateway",       status: "Connected", events: "423K/day", color: "#10b981" },
+                { name: "Identity Provider",   status: "Connected", events: "124K/day", color: "#10b981" },
               ].map((source, i) => (
-                <div
+                <motion.div
                   key={i}
-                  className="p-4 rounded-lg border border-border bg-card/50"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.25 + i * 0.04 }}
+                  whileHover={{ y: -2 }}
+                  className="p-4 rounded-xl border border-border/20 bg-muted/10 relative overflow-hidden group cursor-default"
                 >
-                  <h3 className="font-semibold mb-2">{source.name}</h3>
-                  <p className="text-xs text-success mb-1">{source.status}</p>
-                  <p className="text-xs text-muted-foreground">{source.events}</p>
-                </div>
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{ background: `radial-gradient(circle at 20% 50%, ${source.color}08, transparent 65%)` }}
+                  />
+                  <div className="flex items-center gap-2 mb-2 relative z-10">
+                    <Wifi className="h-3.5 w-3.5" style={{ color: source.color }} />
+                    <h3 className="font-medium text-[13px]">{source.name}</h3>
+                  </div>
+                  <div className="flex items-center gap-1.5 relative z-10">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: source.color, boxShadow: `0 0 6px ${source.color}60` }} />
+                    <span className="text-[10px] font-medium" style={{ color: source.color }}>{source.status}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/40 mt-1 relative z-10">{source.events}</p>
+                  <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{ background: `linear-gradient(90deg, transparent, ${source.color}20, transparent)` }} />
+                </motion.div>
               ))}
             </div>
           </Card>

@@ -1,25 +1,26 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Activity, ShieldAlert, Bug, BarChart2 } from "lucide-react";
 
 type RiskScore = { score: number; label: string; color: string };
 type IncidentStats = { open: number; total_incidents: number };
 type MalwareStatus = { clamav?: { infected_count: number }; yara_hits?: number; risk_score?: number; verdict?: string };
 
-function useCount(target: number, duration = 1000) {
+function useCount(target: number, duration = 1200) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     if (target === 0) { setVal(0); return; }
-    let start = 0;
-    const step = target / (duration / 16);
-    const t = setInterval(() => {
-      start = Math.min(start + step, target);
-      setVal(Math.round(start));
-      if (start >= target) clearInterval(t);
-    }, 16);
-    return () => clearInterval(t);
+    const start = performance.now();
+    let frame: number;
+    const animate = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setVal(Math.round(eased * target));
+      if (progress < 1) frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
   }, [target, duration]);
   return val;
 }
@@ -32,28 +33,37 @@ function StatCard({ icon: Icon, label, rawValue, numericValue, sub, accent }: {
   const display = numericValue !== undefined ? (rawValue.includes("/") ? `${counted}/100` : String(counted)) : rawValue;
 
   return (
-    <Card className="glass-effect overflow-hidden relative group cursor-default" style={{ borderColor: `${accent}25` }}>
+    <Card className="glass-elevated overflow-hidden relative group cursor-default" style={{ borderColor: `${accent}18` }}>
+      {/* Shimmer sweep */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${accent}06, transparent)` }}
+        style={{ background: `linear-gradient(90deg, transparent, ${accent}05, transparent)` }}
         animate={{ x: ["-100%", "200%"] }}
-        transition={{ duration: 3, repeat: Infinity, repeatDelay: 4 }}
+        transition={{ duration: 4, repeat: Infinity, repeatDelay: 5 }}
       />
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-        style={{ background: `radial-gradient(circle at 30% 50%, ${accent}10 0%, transparent 65%)` }} />
+      {/* Hover radial glow */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{ background: `radial-gradient(circle at 30% 50%, ${accent}0A 0%, transparent 65%)` }}
+      />
       <div className="p-5 relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-2 rounded-lg" style={{ background: `${accent}15` }}>
-            <Icon className="h-5 w-5" style={{ color: accent }} />
+        <div className="flex items-center justify-between mb-3">
+          <div className="p-2 rounded-lg" style={{ background: `${accent}10` }}>
+            <Icon className="h-4 w-4" style={{ color: accent }} />
           </div>
-          <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: accent }} />
+          <div
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ background: accent, boxShadow: `0 0 6px ${accent}80` }}
+          />
         </div>
-        <p className="text-xs text-muted-foreground font-medium mb-1">{label}</p>
-        <p className="text-2xl font-bold tracking-tight" style={{ color: accent }}>{display}</p>
-        <p className="text-xs text-muted-foreground mt-1 truncate">{sub}</p>
+        <p className="text-[10px] text-muted-foreground/60 font-medium mb-1 uppercase tracking-wider">{label}</p>
+        <p className="text-2xl font-bold tracking-tight tabular-nums" style={{ color: accent }}>{display}</p>
+        <p className="text-[10px] text-muted-foreground/40 mt-1 truncate">{sub}</p>
       </div>
-      <div className="absolute bottom-0 left-0 right-0 h-[2px]"
-        style={{ background: `linear-gradient(90deg, transparent, ${accent}50, transparent)` }} />
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[1px]"
+        style={{ background: `linear-gradient(90deg, transparent, ${accent}40, transparent)` }}
+      />
     </Card>
   );
 }
@@ -83,34 +93,46 @@ export function StatsCards() {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard
-        icon={BarChart2} label="Risk Score"
-        rawValue={risk ? `${risk.score}/100` : "—"}
-        numericValue={risk?.score}
-        sub={risk?.label ?? "Calculating…"}
-        accent="#22D3EE"
-      />
-      <StatCard
-        icon={ShieldAlert} label="Open Incidents"
-        rawValue={stats ? String(stats.open) : "—"}
-        numericValue={stats?.open}
-        sub={`${stats?.total_incidents ?? 0} total tracked`}
-        accent="#F87171"
-      />
-      <StatCard
-        icon={Activity} label="Threat Events"
-        rawValue={String(events)}
-        numericValue={events}
-        sub="From all scanners"
-        accent="#38BDF8"
-      />
-      <StatCard
-        icon={Bug} label="Malware Verdict"
-        rawValue={malware?.verdict ?? "—"}
-        sub={`${malware?.clamav?.infected_count ?? 0} ClamAV · ${malware?.yara_hits ?? 0} YARA hits`}
-        accent={malware?.verdict === "CONFIRMED INFECTION" ? "#F87171" : malware?.verdict === "LIKELY COMPROMISE" ? "#FBBF24" : "#34D399"}
-      />
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      {[
+        {
+          icon: BarChart2, label: "Risk Score",
+          rawValue: risk ? `${risk.score}/100` : "—",
+          numericValue: risk?.score,
+          sub: risk?.label ?? "Calculating…",
+          accent: "#00d4ff",
+        },
+        {
+          icon: ShieldAlert, label: "Open Incidents",
+          rawValue: stats ? String(stats.open) : "—",
+          numericValue: stats?.open,
+          sub: `${stats?.total_incidents ?? 0} total tracked`,
+          accent: "#ef4444",
+        },
+        {
+          icon: Activity, label: "Threat Events",
+          rawValue: String(events),
+          numericValue: events,
+          sub: "From all scanners",
+          accent: "#38bdf8",
+        },
+        {
+          icon: Bug, label: "Malware Verdict",
+          rawValue: malware?.verdict ?? "—",
+          sub: `${malware?.clamav?.infected_count ?? 0} ClamAV · ${malware?.yara_hits ?? 0} YARA hits`,
+          accent: malware?.verdict === "CONFIRMED INFECTION" ? "#ef4444" : malware?.verdict === "LIKELY COMPROMISE" ? "#eab308" : "#10b981",
+        },
+      ].map((s, i) => (
+        <motion.div
+          key={s.label}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 + i * 0.06 }}
+          whileHover={{ y: -2 }}
+        >
+          <StatCard {...s} />
+        </motion.div>
+      ))}
     </div>
   );
 }
