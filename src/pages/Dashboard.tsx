@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   ShieldAlert, Activity, AlertTriangle, Clock,
-  RotateCw, Wifi, WifiOff, TrendingUp, Radar,
+  RotateCw, Wifi, WifiOff, TrendingUp, Radar, FileDown, Loader2,
 } from "lucide-react";
 
 /* ─── Types ── */
@@ -101,7 +101,7 @@ function RiskGauge({ score, label, color }: { score: number; label: string; colo
 
 /* ─── Scanner breakdown mini-bar ── */
 function ScannerBreakdown({ events }: { events: ThreatEvent[] }) {
-  const scanners = ["clamav", "yara", "trivy", "wazuh", "semgrep"];
+  const scanners = ["clamav", "yara", "trivy", "wazuh", "semgrep", "nuclei", "bandit"];
   const counts = scanners.map(s => ({
     name: s.toUpperCase(),
     count: events.filter(e => e.scanner?.toLowerCase().includes(s)).length,
@@ -257,26 +257,37 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      {/* ── Top bar: status + asset info ── */}
-      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2.5 flex-wrap">
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full glass-effect text-[11px] font-mono"
-          style={{ borderColor: `${statusCol}25` }}
-        >
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: statusCol }} />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: statusCol }} />
-          </span>
-          <span style={{ color: statusCol }}>
-            {backendStatus === "checking" ? "Connecting…" : backendStatus === "online" ? "Backend Online" : "Backend Offline"}
-          </span>
-          {backendStatus === "online" ? <Wifi className="h-3 w-3" style={{ color: statusCol }} /> : <WifiOff className="h-3 w-3" style={{ color: statusCol }} />}
+      {/* ── Top bar: status + asset info + report download ── */}
+      <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full glass-effect text-[11px] font-mono"
+            style={{ borderColor: `${statusCol}25` }}
+          >
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: statusCol }} />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: statusCol }} />
+            </span>
+            <span style={{ color: statusCol }}>
+              {backendStatus === "checking" ? "Connecting…" : backendStatus === "online" ? "Backend Online" : "Backend Offline"}
+            </span>
+            {backendStatus === "online" ? <Wifi className="h-3 w-3" style={{ color: statusCol }} /> : <WifiOff className="h-3 w-3" style={{ color: statusCol }} />}
+          </div>
+          {asset?.hostname && (
+            <span className="text-[10px] text-muted-foreground/50 font-mono px-3 py-1.5 rounded-full glass-effect">
+              🖥 {asset.hostname} · {asset.ip_address} · {asset.os?.system}
+            </span>
+          )}
         </div>
-        {asset?.hostname && (
-          <span className="text-[10px] text-muted-foreground/50 font-mono px-3 py-1.5 rounded-full glass-effect">
-            🖥 {asset.hostname} · {asset.ip_address} · {asset.os?.system}
-          </span>
-        )}
+
+        <button
+          onClick={() => window.open("/api/report/generate", "_blank")}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all hover:-translate-y-0.5"
+          style={{ background: "rgba(0,212,255,0.1)", color: "#00d4ff", border: "1px solid rgba(0,212,255,0.2)" }}
+        >
+          <FileDown className="w-3.5 h-3.5" />
+          Download PDF Report
+        </button>
       </motion.div>
 
       {/* ── Page header ── */}

@@ -29,6 +29,10 @@ tzlocal==5.3.1
 # ── Scanner Dependencies ─────────────────────────────────────────────────────
 yara-python>=4.3.1         # YARA rule engine for malware scanning
 gitpython>=3.1.0           # Used for git-based scanning targets
+bandit>=1.7.0              # Python SAST scanner (security linter)
+
+# ── Report Generation ────────────────────────────────────────────────────────
+fpdf2>=2.8.0               # PDF report generation for analyst download
 
 # ── JSON / YAML Parsing ──────────────────────────────────────────────────────
 jsonschema==4.25.1

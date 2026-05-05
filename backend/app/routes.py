@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
 import subprocess
 import json
 from pathlib import Path
@@ -412,6 +413,88 @@ def ai_chat(request: AIChatRequest):
         
     except Exception as e:
         return {"reply": f"❌ **AI Processing Error:**\n\n```\n{str(e)}\n```"}
+
+
+# ==========================================================
+# NUCLEI SCAN (on-demand)
+# ==========================================================
+@router.get("/scan/nuclei")
+def scan_nuclei(target_path: str = Query(...)):
+    """Run Nuclei template-based scanner against the given target."""
+    try:
+        result = subprocess.run(
+            ["nuclei", "-target", target_path, "-json", "-silent",
+             "-severity", "critical,high,medium,low"],
+            capture_output=True, text=True, timeout=300
+        )
+        findings = []
+        for line in result.stdout.strip().splitlines():
+            try:
+                findings.append(json.loads(line))
+            except Exception:
+                continue
+        return {"findings": findings, "count": len(findings)}
+    except FileNotFoundError:
+        return {"error": "Nuclei not installed", "findings": [], "count": 0}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+# ==========================================================
+# BANDIT SCAN (on-demand)
+# ==========================================================
+@router.get("/scan/bandit")
+def scan_bandit(target_path: str = Query(...)):
+    """Run Bandit Python SAST scanner on the given directory."""
+    try:
+        result = subprocess.run(
+            ["bandit", "-r", target_path, "-f", "json", "-ll"],
+            capture_output=True, text=True, timeout=300
+        )
+        if not result.stdout:
+            return {"results": [], "count": 0}
+        data = json.loads(result.stdout)
+        return {
+            "results": data.get("results", []),
+            "metrics": data.get("metrics", {}),
+            "count": len(data.get("results", [])),
+        }
+    except FileNotFoundError:
+        return {"error": "Bandit not installed", "results": [], "count": 0}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+# ==========================================================
+# PDF REPORT GENERATION
+# ==========================================================
+@router.get("/report/generate")
+def generate_pdf_report():
+    """Generate a comprehensive security assessment PDF report."""
+    try:
+        from app.services.report_generator import generate_report, _fpdf_ok
+        if not _fpdf_ok:
+            raise HTTPException(
+                500,
+                "fpdf2 is not installed. Run: pip install fpdf2"
+            )
+        pdf_bytes = generate_report()
+        if pdf_bytes is None:
+            raise HTTPException(500, "Failed to generate report")
+
+        filename = f"SentinelNexus_Report_{__import__('datetime').datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Type": "application/pdf",
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Report generation failed: {str(e)}")
 
 
 # ==========================================================

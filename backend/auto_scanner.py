@@ -2,7 +2,7 @@
 auto_scanner.py — Unified scan scheduler for SentinelNexus.
 
 Runs the following pipelines on schedule and at startup:
-  1. Vulnerability scan  (OSV + Trivy + Semgrep)  every 2 hours
+  1. Vulnerability scan  (OSV + Trivy + Semgrep + Nuclei + Bandit)  every 2 hours
   2. Malware scan        (ClamAV + YARA + VirusTotal)  every 2h 15m
   3. Telemetry snapshot  (host, processes, network, etc.)  every 1 hour
   4. ThreatSentinel correlation  (after each scan cycle)
@@ -84,16 +84,74 @@ def run_trivy(path: str) -> dict:
 def run_semgrep(path: str) -> dict:
     return safe_run(["semgrep", "--json", "--config=p/ci", path])
 
-def scan_directory(directory: str) -> dict:
-    with ThreadPoolExecutor(max_workers=3) as ex:
+
+def run_nuclei(path: str) -> dict:
+    """Run Nuclei template-based scanner against a target path or URL.
+    Falls back gracefully if nuclei is not installed."""
+    try:
+        # Nuclei primarily scans URLs/hosts, but can also scan local files
+        # for exposed configs. We use file-based templates here.
+        result = subprocess.run(
+            ["nuclei", "-target", path, "-json", "-silent",
+             "-t", "cves/", "-t", "misconfiguration/",
+             "-t", "exposures/", "-severity", "critical,high,medium,low"],
+            capture_output=True, text=True, timeout=300
+        )
+        # Nuclei outputs one JSON object per line (JSONL format)
+        findings = []
+        for line in result.stdout.strip().splitlines():
+            try:
+                findings.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+        return {"findings": findings, "count": len(findings)}
+    except FileNotFoundError:
+        return {"error": "Nuclei not installed", "findings": [], "count": 0}
+    except subprocess.TimeoutExpired:
+        return {"error": "Nuclei scan timed out", "findings": [], "count": 0}
+    except Exception as e:
+        return {"error": f"Nuclei failed: {str(e)}", "findings": [], "count": 0}
+
+
+def run_bandit(path: str) -> dict:
+    """Run Bandit Python SAST scanner on the target directory.
+    Falls back gracefully if bandit is not installed."""
+    try:
+        result = subprocess.run(
+            ["bandit", "-r", path, "-f", "json", "-ll"],
+            capture_output=True, text=True, timeout=300
+        )
+        if not result.stdout:
+            return {"results": [], "metrics": {}, "errors": [], "count": 0}
+        data = json.loads(result.stdout)
         return {
-            "osv":    ex.submit(run_osv, directory).result(),
-            "trivy":  ex.submit(run_trivy, directory).result(),
+            "results": data.get("results", []),
+            "metrics": data.get("metrics", {}),
+            "errors": data.get("errors", []),
+            "count": len(data.get("results", [])),
+        }
+    except FileNotFoundError:
+        return {"error": "Bandit not installed", "results": [], "count": 0}
+    except json.JSONDecodeError:
+        return {"error": "Invalid JSON from Bandit", "results": [], "count": 0}
+    except subprocess.TimeoutExpired:
+        return {"error": "Bandit scan timed out", "results": [], "count": 0}
+    except Exception as e:
+        return {"error": f"Bandit failed: {str(e)}", "results": [], "count": 0}
+
+
+def scan_directory(directory: str) -> dict:
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        return {
+            "osv":     ex.submit(run_osv, directory).result(),
+            "trivy":   ex.submit(run_trivy, directory).result(),
             "semgrep": ex.submit(run_semgrep, directory).result(),
+            "nuclei":  ex.submit(run_nuclei, directory).result(),
+            "bandit":  ex.submit(run_bandit, directory).result(),
         }
 
 def run_all_scans() -> dict:
-    print(f"\n[{datetime.now()}] Starting vulnerability scan...")
+    print(f"\n[{datetime.now()}] Starting vulnerability scan (OSV + Trivy + Semgrep + Nuclei + Bandit)...")
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     results = {"timestamp": timestamp, "directories": SCAN_DIRS, "results": {}}
 
@@ -104,7 +162,7 @@ def run_all_scans() -> dict:
 
     SAVE_PATH.write_text(json.dumps(results, indent=2))
     (HISTORY_DIR / f"scan-{timestamp}.json").write_text(json.dumps(results, indent=2))
-    print("[+] Vulnerability scan saved.")
+    print("[+] Vulnerability scan saved (5 scanners).")
     return results
 
 
@@ -307,4 +365,4 @@ def start_scheduler():
     for target in (run_all_scans, run_malware_scan, run_telemetry_snapshot, run_correlation):
         Thread(target=target, daemon=True).start()
 
-    print("[+] AUTO: vulnerability + malware (ClamAV+YARA+VT) + telemetry + correlation ENABLED")
+    print("[+] AUTO: vulnerability (OSV+Trivy+Semgrep+Nuclei+Bandit) + malware (ClamAV+YARA+VT) + telemetry + correlation ENABLED")
