@@ -130,6 +130,8 @@ def _download_community_rules() -> None:
             if clone_path.exists():
                 logger.info("Pulling latest community rules: %s", clone_name)
                 repo = git.Repo(clone_path)
+                with repo.config_writer() as cw:
+                    cw.set_value("pull", "rebase", "true")
                 repo.remotes.origin.pull(depth=1)
             else:
                 logger.info("Cloning community rules: %s", repo_url)

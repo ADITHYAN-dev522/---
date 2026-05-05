@@ -494,6 +494,8 @@ def generate_pdf_report():
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(500, f"Report generation failed: {str(e)}")
 
 

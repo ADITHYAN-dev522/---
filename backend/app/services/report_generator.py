@@ -20,6 +20,7 @@ try:
     _fpdf_ok = True
 except ImportError:
     _fpdf_ok = False
+    class FPDF: pass  # Dummy class to prevent NameError on class definition
 
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
