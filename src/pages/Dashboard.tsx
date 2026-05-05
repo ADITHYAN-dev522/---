@@ -174,7 +174,7 @@ function TelemetryPanel({ tel }: { tel: Telemetry }) {
     setSavingBaseline(true);
     try {
       await fetch("/api/telemetry/baseline", { method: "POST" });
-    } catch { /* ignore */ }
+    } catch (_e) { /* ignore */ }
     setSavingBaseline(false);
   };
 
@@ -387,7 +387,7 @@ export default function Dashboard() {
       setTelemetry(tel ?? null);
       setThreatEvents(Array.isArray(events) ? events : []);
       setRiskScore(risk ?? null);
-    } catch {
+    } catch (_e) {
       setBackendStatus("offline");
     } finally {
       setLoading(false);
