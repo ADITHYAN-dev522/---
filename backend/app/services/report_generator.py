@@ -427,8 +427,7 @@ def generate_report() -> bytes | None:
         if detections:
             pdf.sub_heading("ClamAV Detections")
             for det in detections[:15]:
-                pdf.set_font("Courier", "", 7)
-                pdf.multi_cell(0, 4, _s(det, 120))
+                pdf.body_text(_s(det, 100), size=7)
             pdf.ln(2)
 
         # Recommendations

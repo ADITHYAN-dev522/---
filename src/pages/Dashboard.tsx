@@ -151,33 +151,71 @@ function ScannerBreakdown({ events }: { events: ThreatEvent[] }) {
 
 /* ─── Telemetry Panel ── */
 function TelemetryPanel({ tel }: { tel: Telemetry }) {
+  const [savingBaseline, setSavingBaseline] = useState(false);
   const asset = tel.asset;
+  const deltas = (tel as any).baseline_deltas;
+  const anomalies: any[] = (tel as any).anomalies || [];
+  const baselineTs = (tel as any).baseline_timestamp;
+
+  const deltaLabel = (d: number | undefined) => {
+    if (d == null || d === 0) return null;
+    const color = d > 0 ? "#ef4444" : "#10b981";
+    const arrow = d > 0 ? "\u2191" : "\u2193";
+    return <span className="text-[8px] font-mono ml-1" style={{ color }}>{arrow}{Math.abs(d).toFixed(1)}</span>;
+  };
+
   const metrics = [
-    { label: "CPU Usage",    value: tel.cpu?.percent != null   ? `${tel.cpu.percent}%`              : "N/A", accent: "#00d4ff", pct: tel.cpu?.percent },
-    { label: "Memory",       value: tel.memory?.percent != null ? `${tel.memory.percent}%`          : "N/A", accent: "#8b5cf6", pct: tel.memory?.percent },
-    { label: "Disk",         value: tel.disk?.percent != null   ? `${tel.disk.percent}%`            : "N/A", accent: "#f97316", pct: tel.disk?.percent },
+    { label: "CPU Usage",    value: tel.cpu?.percent != null   ? `${tel.cpu.percent}%`              : "N/A", accent: "#00d4ff", pct: tel.cpu?.percent, delta: deltas?.cpu_percent },
+    { label: "Memory",       value: tel.memory?.percent != null ? `${tel.memory.percent}%`          : "N/A", accent: "#8b5cf6", pct: tel.memory?.percent, delta: deltas?.memory_percent },
+    { label: "Disk",         value: tel.disk?.percent != null   ? `${tel.disk.percent}%`            : "N/A", accent: "#f97316", pct: tel.disk?.percent, delta: deltas?.disk_percent },
   ];
+
+  const handleSetBaseline = async () => {
+    setSavingBaseline(true);
+    try {
+      await fetch("/api/telemetry/baseline", { method: "POST" });
+    } catch { /* ignore */ }
+    setSavingBaseline(false);
+  };
+
   return (
     <Card className="glass-elevated p-5">
-      <p className="text-xs font-semibold mb-4 flex items-center gap-2">
-        <Activity className="h-3.5 w-3.5 text-primary/60" />
-        Telemetry Analysis
-        {tel.timestamp && (
-          <span className="ml-auto text-[9px] font-mono text-muted-foreground/40">
-            {new Date(tel.timestamp).toLocaleTimeString()}
-          </span>
-        )}
-      </p>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs font-semibold flex items-center gap-2">
+          <Activity className="h-3.5 w-3.5 text-primary/60" />
+          Telemetry Analysis
+          {tel.timestamp && (
+            <span className="ml-auto text-[9px] font-mono text-muted-foreground/40">
+              {String(tel.timestamp).replace(/_/g, " ")}
+            </span>
+          )}
+        </p>
+        <button
+          onClick={handleSetBaseline}
+          disabled={savingBaseline}
+          className="text-[9px] font-semibold px-2.5 py-1 rounded-md transition-all hover:-translate-y-0.5"
+          style={{ background: "rgba(16,185,129,0.1)", color: "#10b981", border: "1px solid rgba(16,185,129,0.2)" }}
+        >
+          {savingBaseline ? "Saving…" : baselineTs ? "Update Baseline" : "Set Baseline"}
+        </button>
+      </div>
+
+      {/* Baseline info */}
+      {baselineTs && (
+        <div className="text-[9px] text-muted-foreground/50 font-mono mb-3 px-2 py-1.5 rounded bg-muted/20">
+          Baseline: {String(baselineTs).replace(/_/g, " ")} — showing deltas
+        </div>
+      )}
 
       {/* Host info */}
       {asset && (
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-4 pb-3 border-b border-border/20">
-          {[
-            ["Host",    asset.hostname   ?? "—"],
-            ["IP",      asset.ip_address ?? "—"],
-            ["OS",      asset.os?.system ?? "—"],
-            ["Release", asset.os?.release ?? "—"],
-          ].map(([k, v]) => (
+          {([
+            ["Host",    asset.hostname   ?? "\u2014"],
+            ["IP",      asset.ip_address ?? "\u2014"],
+            ["OS",      asset.os?.system ?? "\u2014"],
+            ["Release", asset.os?.release ?? "\u2014"],
+          ] as [string, string][]).map(([k, v]) => (
             <div key={k} className="flex gap-1">
               <span className="text-[9px] text-muted-foreground/50 w-12 shrink-0">{k}</span>
               <span className="text-[9px] font-mono text-foreground/70 truncate">{v}</span>
@@ -186,13 +224,15 @@ function TelemetryPanel({ tel }: { tel: Telemetry }) {
         </div>
       )}
 
-      {/* Metric bars */}
+      {/* Metric bars with deltas */}
       <div className="space-y-3">
-        {metrics.map(({ label, value, accent, pct }) => (
+        {metrics.map(({ label, value, accent, pct, delta }) => (
           <div key={label}>
             <div className="flex justify-between mb-1">
               <span className="text-[9px] text-muted-foreground/60">{label}</span>
-              <span className="text-[9px] font-mono" style={{ color: accent }}>{value}</span>
+              <span className="text-[9px] font-mono flex items-center" style={{ color: accent }}>
+                {value}{deltaLabel(delta)}
+              </span>
             </div>
             <div className="h-[4px] rounded-full bg-muted/40 overflow-hidden">
               <motion.div
@@ -209,18 +249,40 @@ function TelemetryPanel({ tel }: { tel: Telemetry }) {
 
       {/* Extra stats */}
       <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border/20">
-        {[
-          ["Processes",   tel.processes?.total   != null ? String(tel.processes.total)                : "—"],
-          ["Running",     tel.processes?.running  != null ? String(tel.processes.running)              : "—"],
-          ["Net ↑",       tel.network?.bytes_sent_mb != null ? `${tel.network.bytes_sent_mb.toFixed(1)} MB` : "—"],
-          ["Net ↓",       tel.network?.bytes_recv_mb != null ? `${tel.network.bytes_recv_mb.toFixed(1)} MB` : "—"],
-        ].map(([k, v]) => (
+        {([
+          ["Processes",   tel.processes?.total   != null ? String(tel.processes.total)                : "\u2014"],
+          ["Running",     tel.processes?.running  != null ? String(tel.processes.running)              : "\u2014"],
+          ["Net \u2191",       tel.network?.bytes_sent_mb != null ? `${tel.network.bytes_sent_mb.toFixed(1)} MB` : "\u2014"],
+          ["Net \u2193",       tel.network?.bytes_recv_mb != null ? `${tel.network.bytes_recv_mb.toFixed(1)} MB` : "\u2014"],
+        ] as [string, string][]).map(([k, v]) => (
           <div key={k} className="text-center p-2 rounded-lg bg-muted/20">
             <p className="text-[8px] text-muted-foreground/50 mb-0.5">{k}</p>
             <p className="text-[11px] font-mono font-semibold text-foreground/80">{v}</p>
           </div>
         ))}
       </div>
+
+      {/* Anomalies */}
+      {anomalies.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-border/20">
+          <p className="text-[9px] font-semibold text-red-400 flex items-center gap-1.5 mb-2">
+            <AlertTriangle className="h-3 w-3" />
+            {anomalies.length} Anomal{anomalies.length === 1 ? "y" : "ies"} Detected
+          </p>
+          <div className="space-y-1.5">
+            {anomalies.map((a: any, i: number) => {
+              const col = SEV[a.severity] ?? "#64748b";
+              return (
+                <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[9px]"
+                  style={{ background: `${col}08`, borderLeft: `2px solid ${col}` }}>
+                  <span className="font-bold" style={{ color: col }}>{a.severity?.toUpperCase()}</span>
+                  <span className="text-foreground/70 font-mono">{a.metric}: {a.detail || a.value}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
