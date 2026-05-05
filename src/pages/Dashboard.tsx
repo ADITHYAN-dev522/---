@@ -15,7 +15,18 @@ type ThreatEvent = {
   scanner: string; severity: string; title: string; details: Record<string, any>; status: string;
 };
 type RiskScore = { score: number; label: string; color: string; recommendation: string; breakdown: Record<string, number> };
-type Telemetry = { asset?: { hostname?: string; ip_address?: string; os?: { system?: string } } };
+type Telemetry = {
+  asset?: {
+    hostname?: string; ip_address?: string;
+    os?: { system?: string; release?: string; version?: string };
+  };
+  cpu?: { percent?: number; count?: number; freq_mhz?: number };
+  memory?: { total_gb?: number; used_gb?: number; percent?: number };
+  disk?: { total_gb?: number; used_gb?: number; percent?: number };
+  processes?: { total?: number; running?: number };
+  network?: { bytes_sent_mb?: number; bytes_recv_mb?: number };
+  timestamp?: string;
+};
 
 const SEV: Record<string, string> = {
   critical: "#ef4444", high: "#f97316", medium: "#eab308", low: "#10b981",
@@ -131,6 +142,82 @@ function ScannerBreakdown({ events }: { events: ThreatEvent[] }) {
               />
             </div>
             <span className="text-[10px] text-muted-foreground/60 w-6 text-right font-mono tabular-nums">{c.count}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/* ─── Telemetry Panel ── */
+function TelemetryPanel({ tel }: { tel: Telemetry }) {
+  const asset = tel.asset;
+  const metrics = [
+    { label: "CPU Usage",    value: tel.cpu?.percent != null   ? `${tel.cpu.percent}%`              : "N/A", accent: "#00d4ff", pct: tel.cpu?.percent },
+    { label: "Memory",       value: tel.memory?.percent != null ? `${tel.memory.percent}%`          : "N/A", accent: "#8b5cf6", pct: tel.memory?.percent },
+    { label: "Disk",         value: tel.disk?.percent != null   ? `${tel.disk.percent}%`            : "N/A", accent: "#f97316", pct: tel.disk?.percent },
+  ];
+  return (
+    <Card className="glass-elevated p-5">
+      <p className="text-xs font-semibold mb-4 flex items-center gap-2">
+        <Activity className="h-3.5 w-3.5 text-primary/60" />
+        Telemetry Analysis
+        {tel.timestamp && (
+          <span className="ml-auto text-[9px] font-mono text-muted-foreground/40">
+            {new Date(tel.timestamp).toLocaleTimeString()}
+          </span>
+        )}
+      </p>
+
+      {/* Host info */}
+      {asset && (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-4 pb-3 border-b border-border/20">
+          {[
+            ["Host",    asset.hostname   ?? "—"],
+            ["IP",      asset.ip_address ?? "—"],
+            ["OS",      asset.os?.system ?? "—"],
+            ["Release", asset.os?.release ?? "—"],
+          ].map(([k, v]) => (
+            <div key={k} className="flex gap-1">
+              <span className="text-[9px] text-muted-foreground/50 w-12 shrink-0">{k}</span>
+              <span className="text-[9px] font-mono text-foreground/70 truncate">{v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Metric bars */}
+      <div className="space-y-3">
+        {metrics.map(({ label, value, accent, pct }) => (
+          <div key={label}>
+            <div className="flex justify-between mb-1">
+              <span className="text-[9px] text-muted-foreground/60">{label}</span>
+              <span className="text-[9px] font-mono" style={{ color: accent }}>{value}</span>
+            </div>
+            <div className="h-[4px] rounded-full bg-muted/40 overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: `linear-gradient(90deg, ${accent}, ${accent}80)`, boxShadow: `0 0 6px ${accent}40` }}
+                initial={{ width: 0 }}
+                animate={{ width: `${pct ?? 0}%` }}
+                transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Extra stats */}
+      <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border/20">
+        {[
+          ["Processes",   tel.processes?.total   != null ? String(tel.processes.total)                : "—"],
+          ["Running",     tel.processes?.running  != null ? String(tel.processes.running)              : "—"],
+          ["Net ↑",       tel.network?.bytes_sent_mb != null ? `${tel.network.bytes_sent_mb.toFixed(1)} MB` : "—"],
+          ["Net ↓",       tel.network?.bytes_recv_mb != null ? `${tel.network.bytes_recv_mb.toFixed(1)} MB` : "—"],
+        ].map(([k, v]) => (
+          <div key={k} className="text-center p-2 rounded-lg bg-muted/20">
+            <p className="text-[8px] text-muted-foreground/50 mb-0.5">{k}</p>
+            <p className="text-[11px] font-mono font-semibold text-foreground/80">{v}</p>
           </div>
         ))}
       </div>
@@ -358,6 +445,17 @@ export default function Dashboard() {
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <DetectionChart />
       </motion.div>
+
+      {/* ── Telemetry Analysis Panel ── */}
+      {telemetry && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.32 }}
+        >
+          <TelemetryPanel tel={telemetry} />
+        </motion.div>
+      )}
 
       {/* ── Live event table ── */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>

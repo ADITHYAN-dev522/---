@@ -38,6 +38,35 @@ def _load_json(path: Path) -> dict | list | None:
         return None
 
 
+# ─── Unicode sanitizer ────────────────────────────────────────────────────────
+_UNICODE_MAP = str.maketrans({
+    "\u2014": "-",   # em dash  —
+    "\u2013": "-",   # en dash  –
+    "\u2018": "'",   # left single quote
+    "\u2019": "'",   # right single quote / apostrophe
+    "\u201c": '"',   # left double quote
+    "\u201d": '"',   # right double quote
+    "\u2022": "*",   # bullet
+    "\u2026": "...", # ellipsis
+    "\u00b7": ".",   # middle dot
+    "\u00ae": "(R)", # registered
+    "\u00a9": "(C)", # copyright
+    "\u2122": "(TM)",# trademark
+    "\u00b0": " deg",# degree
+    "\u2265": ">=",  # >=
+    "\u2264": "<=",  # <=
+})
+
+def _s(text: str | None, max_len: int = 9999) -> str:
+    """Sanitize text for PDF: replace non-latin-1 chars and truncate."""
+    if not text:
+        return ""
+    text = str(text).translate(_UNICODE_MAP)
+    # Final fallback: encode to latin-1, replacing anything still unmappable
+    text = text.encode("latin-1", errors="replace").decode("latin-1")
+    return text[:max_len]
+
+
 # ─── Custom PDF class ────────────────────────────────────────────────────────
 
 class SentinelReport(FPDF):
@@ -229,8 +258,8 @@ def generate_report() -> bytes | None:
     pdf.kv_row("Critical Vulnerabilities", str(critical_count), bold_val=True)
     pdf.kv_row("High Vulnerabilities", str(high_count), bold_val=True)
     if malware:
-        pdf.kv_row("Malware Verdict", malware.get("verdict", "N/A"), bold_val=True)
-        pdf.kv_row("Malware Risk Score", f"{malware.get('risk_score', 0)}/100", bold_val=True)
+        pdf.kv_row("Malware Verdict", _s(malware.get("verdict", "N/A")), bold_val=True)
+        pdf.kv_row("Malware Risk Score", _s(f"{malware.get('risk_score', 0)}/100"), bold_val=True)
 
     pdf.ln(3)
     pdf.sub_heading("Scanner Coverage")
@@ -254,7 +283,7 @@ def generate_report() -> bytes | None:
 
     if scan_data and scan_data.get("results"):
         for scan_dir, bucket in scan_data["results"].items():
-            pdf.sub_heading(f"Target: {scan_dir}")
+            pdf.sub_heading(_s(f"Target: {scan_dir}"))
 
             # ── Trivy ──
             trivy = bucket.get("trivy", {})
@@ -268,11 +297,11 @@ def generate_report() -> bytes | None:
                     rows = []
                     for v in trivy_vulns[:30]:
                         rows.append([
-                            v.get("VulnerabilityID", ""),
-                            (v.get("Severity", "")).upper(),
-                            v.get("PkgName", ""),
-                            v.get("InstalledVersion", ""),
-                            v.get("FixedVersion", "N/A"),
+                            _s(v.get("VulnerabilityID", "")),
+                            _s(v.get("Severity", "")).upper(),
+                            _s(v.get("PkgName", "")),
+                            _s(v.get("InstalledVersion", "")),
+                            _s(v.get("FixedVersion", "N/A")),
                         ])
                     pdf.simple_table(
                         ["CVE ID", "Severity", "Package", "Installed", "Fixed"],
@@ -292,11 +321,11 @@ def generate_report() -> bytes | None:
                     pdf.cell(0, 6, f"OSV Scanner ({len(osv_vulns)} findings)", ln=True)
                     rows = []
                     for v in osv_vulns[:20]:
-                        aliases = ", ".join(v.get("aliases", [])[:2])
+                        aliases = _s(", ".join(v.get("aliases", [])[:2]))
                         rows.append([
-                            v.get("id", ""),
+                            _s(v.get("id", "")),
                             aliases,
-                            (v.get("summary", ""))[:60],
+                            _s(v.get("summary", ""), 60),
                         ])
                     pdf.simple_table(
                         ["ID", "CVE Aliases", "Summary"],
@@ -314,11 +343,11 @@ def generate_report() -> bytes | None:
                     pdf.cell(0, 6, f"Semgrep SAST ({len(findings)} findings)", ln=True)
                     rows = []
                     for f in findings[:20]:
-                        sev = f.get("extra", {}).get("severity", "INFO")
+                        sev = _s(f.get("extra", {}).get("severity", "INFO"))
                         rows.append([
                             sev.upper(),
-                            (f.get("check_id", ""))[:40],
-                            f.get("path", ""),
+                            _s(f.get("check_id", ""), 40),
+                            _s(f.get("path", "")),
                             str(f.get("start", {}).get("line", "")),
                         ])
                     pdf.simple_table(
@@ -339,10 +368,10 @@ def generate_report() -> bytes | None:
                     for f in findings[:20]:
                         info = f.get("info", {})
                         rows.append([
-                            info.get("severity", "").upper(),
-                            info.get("name", f.get("template-id", ""))[:40],
-                            f.get("matched-at", f.get("host", ""))[:50],
-                            ", ".join(info.get("tags", [])[:3]),
+                            _s(info.get("severity", "")).upper(),
+                            _s(info.get("name", f.get("template-id", "")), 40),
+                            _s(f.get("matched-at", f.get("host", "")), 50),
+                            _s(", ".join(info.get("tags", [])[:3])),
                         ])
                     pdf.simple_table(
                         ["Severity", "Template", "Matched At", "Tags"],
@@ -361,11 +390,11 @@ def generate_report() -> bytes | None:
                     rows = []
                     for r in results[:20]:
                         rows.append([
-                            r.get("issue_severity", "").upper(),
-                            r.get("issue_confidence", ""),
-                            r.get("test_id", ""),
-                            (r.get("issue_text", ""))[:45],
-                            f"{r.get('filename', '')}:{r.get('line_number', '')}",
+                            _s(r.get("issue_severity", "")).upper(),
+                            _s(r.get("issue_confidence", "")),
+                            _s(r.get("test_id", "")),
+                            _s(r.get("issue_text", ""), 45),
+                            _s(f"{r.get('filename', '')}:{r.get('line_number', '')}"),
                         ])
                     pdf.simple_table(
                         ["Severity", "Confidence", "Test ID", "Issue", "Location"],
@@ -384,9 +413,9 @@ def generate_report() -> bytes | None:
     pdf.section_title("3. Malware Analysis", 239, 68, 68)
 
     if malware:
-        pdf.kv_row("Scan Timestamp", malware.get("timestamp", "N/A"))
-        pdf.kv_row("Overall Verdict", malware.get("verdict", "N/A"), bold_val=True)
-        pdf.kv_row("Risk Score", f"{malware.get('risk_score', 0)}/100", bold_val=True)
+        pdf.kv_row("Scan Timestamp", _s(malware.get("timestamp", "N/A")))
+        pdf.kv_row("Overall Verdict", _s(malware.get("verdict", "N/A")), bold_val=True)
+        pdf.kv_row("Risk Score", _s(f"{malware.get('risk_score', 0)}/100"), bold_val=True)
         pdf.kv_row("ClamAV Infections", str(malware.get("clamav", {}).get("infected_count", 0)))
         pdf.kv_row("YARA Rule Hits", str(malware.get("yara_hits", 0)))
         pdf.kv_row("VirusTotal Positives", str(malware.get("vt_positives", 0)))
@@ -399,7 +428,7 @@ def generate_report() -> bytes | None:
             pdf.sub_heading("ClamAV Detections")
             for det in detections[:15]:
                 pdf.set_font("Courier", "", 7)
-                pdf.multi_cell(0, 4, det[:120])
+                pdf.multi_cell(0, 4, _s(det, 120))
             pdf.ln(2)
 
         # Recommendations
@@ -412,7 +441,7 @@ def generate_report() -> bytes | None:
                 pdf.severity_badge(level)
                 pdf.set_font("Helvetica", "", 8)
                 pdf.cell(5, 5, "")
-                pdf.cell(0, 5, rec.get("message", "")[:100], ln=True)
+                pdf.cell(0, 5, _s(rec.get("message", ""), 100), ln=True)
             pdf.ln(2)
     else:
         pdf.body_text("No malware scan data available.")
@@ -424,11 +453,11 @@ def generate_report() -> bytes | None:
             pdf.sub_heading(f"YARA Rule Matches ({len(hits)} files)")
             rows = []
             for y in hits[:15]:
-                rules = ", ".join(m.get("rule", "") for m in y.get("matches", []))
+                rules = _s(", ".join(m.get("rule", "") for m in y.get("matches", [])))
                 rows.append([
-                    y.get("file", "")[-50:],
+                    _s(y.get("file", "")[-50:]),
                     rules[:40],
-                    (y.get("sha256", "") or "")[:20] + "...",
+                    _s((y.get("sha256", "") or "")[:20]) + "...",
                 ])
             pdf.simple_table(["File", "Rules Matched", "SHA-256"], rows, [70, 55, 55])
             pdf.ln(2)
@@ -441,10 +470,10 @@ def generate_report() -> bytes | None:
             rows = []
             for v in flagged[:10]:
                 rows.append([
-                    (v.get("sha256", ""))[:24] + "...",
+                    _s((v.get("sha256", ""))[:24]) + "...",
                     f"{v.get('positives', 0)}/{v.get('total_engines', 0)}",
-                    v.get("malware_family", "N/A") or "N/A",
-                    v.get("threat_label", "N/A") or "N/A",
+                    _s(v.get("malware_family", "N/A") or "N/A"),
+                    _s(v.get("threat_label", "N/A") or "N/A"),
                 ])
             pdf.simple_table(["SHA-256", "Detections", "Family", "Label"], rows, [55, 30, 45, 50])
             pdf.ln(2)
@@ -461,10 +490,10 @@ def generate_report() -> bytes | None:
         rows = []
         for a in wazuh_data[:25]:
             rows.append([
-                str(a.get("severity", "")),
-                a.get("rule", "")[:50],
-                a.get("agent", "")[:20],
-                a.get("timestamp", "")[:19],
+                _s(str(a.get("severity", ""))),
+                _s(a.get("rule", ""), 50),
+                _s(a.get("agent", ""), 20),
+                _s(a.get("timestamp", "")[:19]),
             ])
         pdf.simple_table(["Level", "Rule", "Agent", "Timestamp"], rows, [15, 85, 35, 45])
 
@@ -489,11 +518,11 @@ def generate_report() -> bytes | None:
             rows = []
             for inc in incidents[:30]:
                 rows.append([
-                    inc.get("severity", ""),
-                    inc.get("scanner", ""),
-                    inc.get("title", "")[:45],
-                    inc.get("status", ""),
-                    inc.get("timestamp", "")[:19],
+                    _s(inc.get("severity", "")),
+                    _s(inc.get("scanner", "")),
+                    _s(inc.get("title", ""), 45),
+                    _s(inc.get("status", "")),
+                    _s(inc.get("timestamp", "")[:19]),
                 ])
             pdf.simple_table(
                 ["Severity", "Scanner", "Title", "Status", "Timestamp"],
@@ -517,10 +546,10 @@ def generate_report() -> bytes | None:
             rows = []
             for r in recs[:25]:
                 rows.append([
-                    r.get("severity", "").upper(),
-                    r.get("cve", ""),
-                    r.get("package", ""),
-                    r.get("fix_command", "")[:50],
+                    _s(r.get("severity", "")).upper(),
+                    _s(r.get("cve", "")),
+                    _s(r.get("package", "")),
+                    _s(r.get("fix_command", ""), 50),
                 ])
             pdf.simple_table(
                 ["Severity", "CVE", "Package", "Fix Command"],
