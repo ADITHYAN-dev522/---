@@ -576,4 +576,4 @@ def generate_report() -> bytes | None:
     pdf.cell(0, 6, "End of Report", ln=True, align="C")
     pdf.cell(0, 6, f"SentinelNexus v1.0 - {datetime.now().year}", ln=True, align="C")
 
-    return pdf.output()
+    return bytes(pdf.output())
